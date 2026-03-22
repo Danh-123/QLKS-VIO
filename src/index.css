@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-heading: 'Playfair Display', ui-serif, Georgia, serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-vio-white: #ffffff;
+  --color-vio-cream: #f5f1eb;
+  --color-vio-navy: #1e3a5f;
+  --color-vio-gold: #c6a96b;
+  --color-vio-muted: #5c6470;
+
+  --shadow-soft: 0 12px 40px -18px rgba(30, 58, 95, 0.12);
+  --shadow-soft-sm: 0 4px 24px -12px rgba(30, 58, 95, 0.1);
+  --shadow-soft-lg: 0 24px 56px -22px rgba(30, 58, 95, 0.14);
+  --shadow-soft-2xl: 0 36px 72px -28px rgba(30, 58, 95, 0.16);
+
+  --ease-vio: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply m-0 min-h-dvh bg-vio-cream font-body text-vio-navy/[0.88] leading-relaxed antialiased;
+  }
+
+  #root {
+    @apply min-h-dvh;
+  }
+}
