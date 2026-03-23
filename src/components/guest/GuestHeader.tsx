@@ -14,7 +14,7 @@ export function GuestHeader({ onBook }: { onBook: () => void }) {
     <header className="sticky top-0 z-40 border-b border-vio-navy/[0.06] bg-vio-cream/90 shadow-soft-sm backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-8 px-6 py-7 md:px-10">
         <NavLink to="/" className="group shrink-0 outline-none">
-          <span className="font-heading text-2xl font-medium tracking-[0.02em] text-vio-navy transition-colors duration-300 group-hover:text-vio-navy/80 md:text-3xl">
+          <span className="font-heading text-2xl font-medium tracking-wide text-vio-navy transition-colors duration-300 group-hover:text-vio-navy/80 md:text-3xl">
             VIO
           </span>
           <span className="mt-1 block text-[10px] font-medium uppercase tracking-[0.32em] text-vio-navy/38">

@@ -1,3 +1,5 @@
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect } from 'react'
 import {
   BrowserRouter,
   Navigate,
@@ -22,6 +24,7 @@ import { PricingRulesPage } from './pages/admin/PricingRulesPage'
 import { RoomMatrixPage } from './pages/admin/RoomMatrixPage'
 import { RoomsManagePage } from './pages/admin/RoomsManagePage'
 import { StaffRolesPage } from './pages/admin/StaffRolesPage'
+import { AppDataProvider } from './state/AppDataContext'
 
 function HotelSearchRoute() {
   const { key } = useLocation()
@@ -33,31 +36,66 @@ function BookingWizardRoute() {
   return <BookingWizardPage key={searchParams.toString()} />
 }
 
+const pageEase = [0.25, 0.1, 0.25, 1] as const
+
+function ScrollToTopOnRouteChange() {
+  const { pathname, search } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname, search])
+
+  return null
+}
+
+function AnimatedRoutes() {
+  const location = useLocation()
+
+  return (
+    <>
+      <ScrollToTopOnRouteChange />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={`${location.pathname}${location.search}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7, ease: pageEase }}
+        >
+          <Routes location={location}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboardPage />} />
+              <Route path="matrix" element={<RoomMatrixPage />} />
+              <Route path="calendar" element={<BookingCalendarPage />} />
+              <Route path="rooms" element={<RoomsManagePage />} />
+              <Route path="pricing" element={<PricingRulesPage />} />
+              <Route path="customers" element={<CustomersPage />} />
+              <Route path="staff" element={<StaffRolesPage />} />
+            </Route>
+            <Route element={<GuestLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<HotelSearchRoute />} />
+              <Route path="/rooms" element={<RoomListPage />} />
+              <Route path="/rooms/:id" element={<RoomDetailPage />} />
+              <Route path="/book" element={<BookingWizardRoute />} />
+              <Route path="/bookings" element={<BookingHistoryPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+    </>
+  )
+}
+
 export default function App() {
   return (
-    <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboardPage />} />
-            <Route path="matrix" element={<RoomMatrixPage />} />
-            <Route path="calendar" element={<BookingCalendarPage />} />
-            <Route path="rooms" element={<RoomsManagePage />} />
-            <Route path="pricing" element={<PricingRulesPage />} />
-            <Route path="customers" element={<CustomersPage />} />
-            <Route path="staff" element={<StaffRolesPage />} />
-          </Route>
-          <Route element={<GuestLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/search" element={<HotelSearchRoute />} />
-            <Route path="/rooms" element={<RoomListPage />} />
-            <Route path="/rooms/:id" element={<RoomDetailPage />} />
-            <Route path="/book" element={<BookingWizardRoute />} />
-            <Route path="/bookings" element={<BookingHistoryPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </ToastProvider>
+    <AppDataProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <AnimatedRoutes />
+        </BrowserRouter>
+      </ToastProvider>
+    </AppDataProvider>
   )
 }

@@ -29,7 +29,28 @@
     @apply m-0 min-h-dvh bg-vio-cream font-body text-vio-navy/[0.88] leading-relaxed antialiased;
   }
 
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-wide leading-[1.12];
+  }
+
   #root {
     @apply min-h-dvh;
+  }
+}
+
+@layer components {
+  .vio-container {
+    @apply mx-auto max-w-7xl px-6;
+  }
+
+  .vio-section {
+    @apply py-16 md:py-24;
+  }
+
+  .vio-section-gap {
+    @apply mt-24;
   }
 }

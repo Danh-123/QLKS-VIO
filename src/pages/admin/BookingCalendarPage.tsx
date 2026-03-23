@@ -23,9 +23,9 @@ export function BookingCalendarPage() {
   const timelineWidth = CALENDAR_DAYS * DAY_W
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-3xl font-medium tracking-tight text-vio-navy md:text-4xl">
+        <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
           Lịch đặt phòng
         </h1>
         <p className="mt-2 text-sm text-vio-navy/50">
@@ -33,7 +33,7 @@ export function BookingCalendarPage() {
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl bg-vio-white ring-1 ring-vio-navy/[0.06]">
+      <div className="mt-24 overflow-x-auto rounded-xl bg-vio-white ring-1 ring-vio-navy/[0.06]">
         <div style={{ minWidth: 200 + timelineWidth }} className="pb-4">
           <div className="sticky top-0 z-30 flex border-b border-vio-navy/[0.06] bg-vio-cream/95 backdrop-blur-sm">
             <div className="sticky left-0 z-40 flex w-[200px] shrink-0 items-end border-r border-vio-navy/[0.06] bg-vio-cream/95 px-4 py-3">

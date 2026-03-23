@@ -22,7 +22,7 @@ export function StatCard({
       <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-vio-navy/40">
         {label}
       </p>
-      <p className="mt-3 font-heading text-3xl font-medium tracking-tight text-vio-navy md:text-4xl">
+      <p className="mt-3 font-heading text-3xl font-medium leading-[1.1] tracking-wide text-vio-navy md:text-4xl">
         {value}
       </p>
       {hint ? (

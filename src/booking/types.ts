@@ -9,6 +9,7 @@ export type BookingStatus =
 export type StoredBooking = {
   id: string
   createdAt: string
+  customerName?: string
   roomId: string
   roomName: string
   checkIn: string

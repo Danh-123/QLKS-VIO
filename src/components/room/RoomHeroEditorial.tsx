@@ -133,7 +133,7 @@ export function RoomHeroEditorial({
           </motion.p>
           <motion.h1
             variants={lineVariants}
-            className="mt-4 font-heading text-4xl font-medium leading-[1.08] tracking-[0.02em] text-vio-white md:text-6xl lg:text-7xl"
+            className="mt-4 font-heading text-4xl font-medium leading-[1.08] tracking-wide text-vio-white md:text-6xl lg:text-7xl"
           >
             {roomName}
           </motion.h1>
@@ -151,13 +151,13 @@ export function RoomHeroEditorial({
               <p className="text-[10px] uppercase tracking-[0.28em] text-vio-white/65">
                 Giá từ / đêm
               </p>
-              <p className="mt-2 font-heading text-2xl tracking-tight text-vio-white md:text-3xl">
+              <p className="mt-2 font-heading text-2xl tracking-wide text-vio-white md:text-3xl">
                 {priceLabel}
               </p>
             </div>
             <Button
               type="button"
-              className="bg-vio-white px-8 text-vio-navy shadow-soft-sm transition-all duration-300 hover:brightness-[1.03]"
+              className="px-8"
               onClick={onBook}
             >
               Đặt phòng ngay

@@ -19,6 +19,7 @@ type DateRangeCalendarProps = {
   checkIn: string
   checkOut: string
   onChange: (checkIn: string, checkOut: string) => void
+  minDate?: string
   className?: string
 }
 
@@ -26,6 +27,7 @@ export function DateRangeCalendar({
   checkIn,
   checkOut,
   onChange,
+  minDate,
   className,
 }: DateRangeCalendarProps) {
   const ci = parseISO(checkIn)
@@ -75,8 +77,16 @@ export function DateRangeCalendar({
   const onlyStart = Boolean(ci && !co)
   const sameDay = Boolean(ci && co && checkIn === checkOut)
 
+  const minDateValue = parseISO(minDate ?? '')
+
+  const isDisabled = (d: Date, inMonth: boolean) => {
+    if (!inMonth) return true
+    if (!minDateValue) return false
+    return d.getTime() < minDateValue.getTime()
+  }
+
   const onDayClick = (d: Date, inMonth: boolean) => {
-    if (!inMonth) return
+    if (isDisabled(d, inMonth)) return
     const iso = toISO(d)
     const t = d.getTime()
     if (!ci || (ci && co)) {
@@ -153,15 +163,17 @@ export function DateRangeCalendar({
           const range = inRange(d)
           const start = isStart(d)
           const end = isEnd(d)
+          const disabled = isDisabled(d, inMonth)
           return (
             <button
               key={`${iso}-${i}`}
               type="button"
               onClick={() => onDayClick(d, inMonth)}
+              disabled={disabled}
               className={cn(
                 'relative min-h-[40px] rounded-lg text-sm transition-all duration-300 md:min-h-[44px]',
-                !inMonth && 'pointer-events-none text-vio-navy/25',
-                inMonth && 'text-vio-navy/85 hover:bg-vio-cream/60',
+                disabled && 'cursor-not-allowed text-vio-navy/25 opacity-45',
+                inMonth && !disabled && 'text-vio-navy/85 hover:bg-vio-cream/60',
                 onlyStart && start && 'bg-vio-navy text-vio-white hover:bg-vio-navy',
                 range && !start && !end && 'bg-vio-navy/[0.07]',
                 !sameDay &&

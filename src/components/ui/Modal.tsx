@@ -95,7 +95,7 @@ export function Modal({
                 {title ? (
                   <h2
                     id={titleId}
-                    className="font-heading text-2xl font-medium leading-[1.2] tracking-[0.02em] text-vio-navy"
+                    className="font-heading text-2xl font-medium leading-[1.2] tracking-wide text-vio-navy"
                   >
                     {title}
                   </h2>

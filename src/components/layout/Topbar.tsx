@@ -17,7 +17,7 @@ export function Topbar({ title, subtitle, actions, className }: TopbarProps) {
       )}
     >
       <div className="min-w-0">
-        <h1 className="font-heading text-2xl font-medium tracking-tight text-vio-navy md:text-3xl">
+        <h1 className="font-heading text-2xl font-medium leading-[1.15] tracking-wide text-vio-navy md:text-3xl">
           {title}
         </h1>
         {subtitle ? (

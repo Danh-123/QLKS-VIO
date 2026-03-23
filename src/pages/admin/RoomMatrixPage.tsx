@@ -9,7 +9,7 @@ import {
 } from '@dnd-kit/core'
 /* eslint-disable react-hooks/refs -- @dnd-kit useDroppable / useDraggable */
 import type { ReactNode } from 'react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   initialMatrixRooms,
   initialUnassignedGuests,
@@ -45,6 +45,13 @@ const statusLabel: Record<MatrixRoomStatus, string> = {
   maintenance: 'Bảo trì',
   reserved: 'Giữ chỗ',
 }
+
+const operationalStatuses: MatrixRoomStatus[] = [
+  'available',
+  'occupied',
+  'dirty',
+  'maintenance',
+]
 
 function canAccept(room: MatrixRoom) {
   if (room.status === 'maintenance' || room.status === 'dirty') return false
@@ -104,7 +111,11 @@ function RoomCell({
 }
 
 export function RoomMatrixPage() {
-  const [rooms, setRooms] = useState<MatrixRoom[]>(initialMatrixRooms)
+  const [rooms, setRooms] = useState<MatrixRoom[]>(() =>
+    initialMatrixRooms.map((room) =>
+      room.status === 'reserved' ? { ...room, status: 'available' } : room,
+    ),
+  )
   const [guests, setGuests] =
     useState<UnassignedGuest[]>(initialUnassignedGuests)
   const [floor, setFloor] = useState<string>('all')
@@ -147,19 +158,81 @@ export function RoomMatrixPage() {
     setGuests((g) => g.filter((x) => x.id !== guestId))
   }
 
+  useEffect(() => {
+    if (rooms.length === 0) return
+
+    const randomGuestNames = [
+      'Walk-in HN',
+      'Walk-in SG',
+      'Late Checkin',
+      'VIP Arrival',
+    ]
+
+    const timer = window.setInterval(() => {
+      setRooms((prev) => {
+        if (prev.length === 0) return prev
+        const index = Math.floor(Math.random() * prev.length)
+        const room = prev[index]
+
+        const nextMap: Record<MatrixRoomStatus, MatrixRoomStatus[]> = {
+          available: ['occupied', 'dirty', 'maintenance'],
+          occupied: ['dirty', 'available'],
+          dirty: ['available', 'maintenance'],
+          maintenance: ['available', 'dirty'],
+          reserved: ['occupied', 'available'],
+        }
+
+        const options = nextMap[room.status]
+        if (!options || options.length === 0) return prev
+
+        const nextStatus = options[Math.floor(Math.random() * options.length)]
+        const updated = [...prev]
+        updated[index] = {
+          ...room,
+          status: nextStatus,
+          guestName:
+            nextStatus === 'occupied'
+              ? room.guestName ||
+                randomGuestNames[Math.floor(Math.random() * randomGuestNames.length)]
+              : undefined,
+        }
+        return updated
+      })
+    }, 5000)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [rooms.length])
+
+  const rotateStatus = (roomId: string) => {
+    setRooms((prev) =>
+      prev.map((room) => {
+        if (room.id !== roomId) return room
+        const idx = operationalStatuses.indexOf(room.status)
+        const next = operationalStatuses[(idx + 1) % operationalStatuses.length]
+        return {
+          ...room,
+          status: next,
+          guestName: next === 'occupied' ? room.guestName : undefined,
+        }
+      }),
+    )
+  }
+
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-      <div className="space-y-10">
+      <div className="space-y-6">
         <div>
-          <h1 className="font-heading text-3xl font-medium tracking-tight text-vio-navy md:text-4xl">
+          <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
             Sơ đồ phòng
           </h1>
           <p className="mt-2 text-sm text-vio-navy/50">
-            Kéo khách chưa xếp phòng vào ô trống hoặc giữ chỗ trống.
+            Kéo khách vào phòng trống hoặc bấm vào phòng để đổi trạng thái vận hành.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-4">
+        <div className="mt-24 flex flex-wrap gap-8">
           <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-vio-navy/45">
             Tầng
             <select
@@ -200,13 +273,12 @@ export function RoomMatrixPage() {
               <option value="occupied">Có khách</option>
               <option value="dirty">Dọn dẹp</option>
               <option value="maintenance">Bảo trì</option>
-              <option value="reserved">Giữ chỗ</option>
             </select>
           </label>
         </div>
 
         {guests.length > 0 ? (
-          <div className="rounded-xl bg-vio-white/80 p-6 ring-1 ring-vio-navy/[0.06]">
+          <div className="mt-24 rounded-xl bg-vio-white/80 p-6 ring-1 ring-vio-navy/[0.06]">
             <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-vio-navy/45">
               Chưa xếp phòng
             </p>
@@ -220,33 +292,39 @@ export function RoomMatrixPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((room) => (
             <InfoTip
               key={room.id}
               content={`${room.code} · ${room.type} · Tầng ${room.floor} · ${statusLabel[room.status]}${room.guestName ? ` · ${room.guestName}` : ''}`}
             >
               <RoomCell room={room}>
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-heading text-lg text-vio-navy">
-                    {room.code}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-wider text-vio-navy/45">
-                    {room.type}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-vio-navy/50">
-                  {statusLabel[room.status]}
-                </p>
-                {room.guestName ? (
-                  <p className="mt-3 text-sm font-medium text-vio-navy/80">
-                    {room.guestName}
+                <button
+                  type="button"
+                  onClick={() => rotateStatus(room.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-heading text-lg text-vio-navy">
+                      {room.code}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-vio-navy/45">
+                      {room.type}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-vio-navy/50">
+                    {statusLabel[room.status]}
                   </p>
-                ) : (
-                  <p className="mt-3 text-xs text-vio-navy/35">
-                    {canAccept(room) ? 'Thả khách vào đây' : '—'}
-                  </p>
-                )}
+                  {room.guestName ? (
+                    <p className="mt-3 text-sm font-medium text-vio-navy/80">
+                      {room.guestName}
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-xs text-vio-navy/35">
+                      {canAccept(room) ? 'Thả khách vào đây' : '—'}
+                    </p>
+                  )}
+                </button>
               </RoomCell>
             </InfoTip>
           ))}

@@ -15,10 +15,10 @@ import {
   formatVnd,
   getRelatedRooms,
   getRoomDetail,
-  nightsBetween,
   type RoomAmenity,
 } from '../data/roomDetails'
 import { cn } from '../lib/cn'
+import { useAppData } from '../state/AppDataContext'
 
 const reveal = 0.72
 const amenityEase = [0.25, 0.1, 0.25, 1] as const
@@ -47,6 +47,8 @@ function BookingPanel({
   checkIn,
   checkOut,
   guests,
+  minCheckIn,
+  minCheckOut,
   onChangeCi,
   onChangeCo,
   onChangeGuests,
@@ -54,12 +56,15 @@ function BookingPanel({
   subtotal,
   taxEstimate,
   total,
+  canBook,
   onBook,
   className,
 }: {
   checkIn: string
   checkOut: string
   guests: string
+  minCheckIn: string
+  minCheckOut: string
   onChangeCi: (v: string) => void
   onChangeCo: (v: string) => void
   onChangeGuests: (v: string) => void
@@ -67,6 +72,7 @@ function BookingPanel({
   subtotal: number
   taxEstimate: number
   total: number
+  canBook: boolean
   onBook: () => void
   className?: string
 }) {
@@ -91,6 +97,7 @@ function BookingPanel({
             id="rd-ci"
             label="Nhận phòng"
             type="date"
+            min={minCheckIn}
             value={checkIn}
             onChange={(e) => onChangeCi(e.target.value)}
           />
@@ -98,6 +105,7 @@ function BookingPanel({
             id="rd-co"
             label="Trả phòng"
             type="date"
+            min={minCheckOut}
             value={checkOut}
             onChange={(e) => onChangeCo(e.target.value)}
           />
@@ -131,30 +139,48 @@ function BookingPanel({
         </div>
         <Button
           type="button"
-          className="w-full py-3.5 transition-all duration-300 hover:brightness-[1.04]"
+          className="w-full"
+          disabled={!canBook}
+          aria-disabled={!canBook}
+          title={!canBook ? 'Vui lòng chọn ngày hợp lệ hoặc phòng đang hết' : undefined}
           onClick={onBook}
         >
-          Đặt phòng
+          Đặt phòng ngay
         </Button>
       </div>
     </Card>
   )
 }
 
+import { useEffect } from 'react'
+
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const {
+    bookingDraft,
+    setBookingDraft,
+    todayIso,
+    isValidDateRange,
+    isRoomAvailable,
+    calculatePricing,
+  } = useAppData()
+
+  // Scroll to top when id (room) changes
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [id])
 
   const room = id ? getRoomDetail(id) : undefined
   const [checkIn, setCheckIn] = useState(
-    () => searchParams.get('checkIn') ?? '',
+    () => searchParams.get('checkIn') ?? bookingDraft.checkIn,
   )
   const [checkOut, setCheckOut] = useState(
-    () => searchParams.get('checkOut') ?? '',
+    () => searchParams.get('checkOut') ?? bookingDraft.checkOut,
   )
   const [guests, setGuests] = useState(
-    () => searchParams.get('guests') ?? '2',
+    () => searchParams.get('guests') ?? bookingDraft.guests,
   )
 
   const related = useMemo(
@@ -167,28 +193,61 @@ export function RoomDetailPage() {
   }
 
   const nightsParam = searchParams.get('nights')
+  const pricing = calculatePricing(room.id, checkIn, checkOut)
   const nights =
     nightsParam != null && nightsParam !== ''
       ? Math.max(1, parseInt(nightsParam, 10) || 1)
-      : checkIn && checkOut
-        ? nightsBetween(checkIn, checkOut)
-        : 1
+      : pricing.nights
 
-  const subtotal = room.pricePerNight * nights
-  const taxEstimate = Math.round(subtotal * 0.08)
-  const total = subtotal + taxEstimate
+  const subtotal = pricing.subtotal
+  const taxEstimate = pricing.serviceFee
+  const total = pricing.total
+  const datesValid = isValidDateRange(checkIn, checkOut)
+  const available = datesValid
+    ? isRoomAvailable(room.id, checkIn, checkOut)
+    : false
+  const canBook = datesValid && available
 
   const goBook = () => {
+    if (!canBook) return
     const q = new URLSearchParams()
     q.set('room', room.id)
     if (checkIn) q.set('checkIn', checkIn)
     if (checkOut) q.set('checkOut', checkOut)
     q.set('guests', guests)
+    setBookingDraft({
+      roomId: room.id,
+      checkIn,
+      checkOut,
+      guests,
+      adults: guests,
+      children: '0',
+    })
     navigate(`/book?${q.toString()}`)
   }
 
+  const updateCheckIn = (value: string) => {
+    setCheckIn(value)
+    if (checkOut && checkOut <= value) {
+      setCheckOut('')
+      setBookingDraft({ checkOut: '' })
+    }
+    setBookingDraft({ checkIn: value })
+  }
+
+  const updateCheckOut = (value: string) => {
+    setCheckOut(value)
+    setBookingDraft({ checkOut: value })
+  }
+
+  const updateGuests = (value: string) => {
+    const safe = String(Math.max(1, parseInt(value, 10) || 1))
+    setGuests(safe)
+    setBookingDraft({ guests: safe, adults: safe, children: '0' })
+  }
+
   return (
-    <div className="bg-vio-cream pb-36 md:pb-0">
+    <div className="overflow-x-clip bg-vio-cream">
       <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2">
         <RoomHeroEditorial
           images={room.gallery}
@@ -200,29 +259,32 @@ export function RoomDetailPage() {
         />
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 pt-20 md:px-10 md:pt-24">
-        <div className="lg:grid lg:grid-cols-[1fr_380px] lg:items-start lg:gap-16 xl:gap-20">
-          <div className="min-w-0">
-            <ScrollReveal duration={reveal} y={24} className="mb-16 lg:hidden">
+      <div className="vio-container py-16 md:py-24">
+        <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-12">
+          <div className="min-w-0 lg:col-span-2">
+            <ScrollReveal duration={reveal} y={24} className="mb-24 lg:hidden">
               <div id="booking">
                 <BookingPanel
                   checkIn={checkIn}
                   checkOut={checkOut}
                   guests={guests}
-                  onChangeCi={setCheckIn}
-                  onChangeCo={setCheckOut}
-                  onChangeGuests={setGuests}
+                  minCheckIn={todayIso}
+                  minCheckOut={checkIn || todayIso}
+                  onChangeCi={updateCheckIn}
+                  onChangeCo={updateCheckOut}
+                  onChangeGuests={updateGuests}
                   nights={nights}
                   subtotal={subtotal}
                   taxEstimate={taxEstimate}
                   total={total}
+                  canBook={canBook}
                   onBook={goBook}
                 />
               </div>
             </ScrollReveal>
 
             <ScrollReveal duration={reveal} y={32}>
-              <div className="grid gap-16 md:grid-cols-2 md:gap-20">
+              <div className="grid gap-12 md:grid-cols-2">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/40">
                     Câu chuyện phòng
@@ -230,7 +292,7 @@ export function RoomDetailPage() {
                   <p className="mt-6 text-lg leading-[1.85] tracking-[0.03em] text-vio-navy/70 md:text-xl">
                     {room.description}
                   </p>
-                  <div className="mt-10 space-y-8">
+                  <div className="mt-10 space-y-6">
                     {room.story.map((p, idx) => (
                       <p
                         key={idx}
@@ -287,15 +349,15 @@ export function RoomDetailPage() {
               </ScrollReveal>
             ))}
 
-            <ScrollReveal duration={reveal} y={28} className="mt-28">
+            <ScrollReveal duration={reveal} y={28} className="mt-24">
               <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/40">
                 Tiện nghi
               </p>
-              <h2 className="mt-4 font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+              <h2 className="mt-4 font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                 Mọi thứ cần cho kỳ nghỉ
               </h2>
               <motion.ul
-                className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+                className="mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, margin: '-10%' }}
@@ -323,12 +385,12 @@ export function RoomDetailPage() {
               </motion.ul>
             </ScrollReveal>
 
-            <ScrollReveal duration={reveal} y={32} className="mt-28 py-24 md:mt-32 md:py-32">
-              <div className="mx-auto max-w-3xl text-center">
+            <ScrollReveal duration={reveal} y={32} className="mt-24 py-16 md:py-24">
+              <div className="text-center">
                 <p className="text-[11px] font-medium uppercase tracking-[0.36em] text-vio-gold/80">
                   Trải nghiệm
                 </p>
-                <h2 className="mt-8 font-heading text-3xl font-medium leading-[1.15] tracking-[0.02em] text-vio-navy md:text-5xl md:leading-[1.12]">
+                <h2 className="mt-8 font-heading text-3xl font-medium leading-[1.15] tracking-wide text-vio-navy md:text-5xl md:leading-[1.12]">
                   {room.experienceTitle}
                 </h2>
                 <p className="mt-10 text-base leading-[2] tracking-[0.03em] text-vio-navy/58 md:text-lg">
@@ -338,14 +400,14 @@ export function RoomDetailPage() {
             </ScrollReveal>
 
             {related.length > 0 ? (
-              <ScrollReveal duration={reveal} y={28} className="mt-8 border-t border-vio-navy/[0.06] pt-24 md:pt-28">
+              <ScrollReveal duration={reveal} y={28} className="mt-24 border-t border-vio-navy/[0.06] pt-16 md:pt-24">
                 <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/40">
                   Có thể bạn thích
                 </p>
                 <h2 className="mt-4 font-heading text-3xl font-medium text-vio-navy md:text-4xl">
                   Phòng tương tự
                 </h2>
-                <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+                <div className="mt-24 grid gap-8 md:grid-cols-3">
                   {related.map((r, idx) => (
                     <ScrollReveal
                       key={r.id}
@@ -363,7 +425,7 @@ export function RoomDetailPage() {
                           />
                         </div>
                         <div className="p-6 md:p-8">
-                          <h3 className="font-heading text-xl tracking-[0.02em] text-vio-navy md:text-2xl">
+                          <h3 className="font-heading text-xl tracking-wide text-vio-navy md:text-2xl">
                             {r.name}
                           </h3>
                           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-vio-navy/50">
@@ -389,48 +451,28 @@ export function RoomDetailPage() {
             ) : null}
           </div>
 
-          <aside className="sticky top-24 z-10 mt-0 hidden self-start lg:block">
+          <aside className="sticky top-24 z-10 mt-0 hidden self-start lg:col-span-1 lg:block">
             <BookingPanel
               checkIn={checkIn}
               checkOut={checkOut}
               guests={guests}
-              onChangeCi={setCheckIn}
-              onChangeCo={setCheckOut}
-              onChangeGuests={setGuests}
+              minCheckIn={todayIso}
+              minCheckOut={checkIn || todayIso}
+              onChangeCi={updateCheckIn}
+              onChangeCo={updateCheckOut}
+              onChangeGuests={updateGuests}
               nights={nights}
               subtotal={subtotal}
               taxEstimate={taxEstimate}
               total={total}
+              canBook={canBook}
               onBook={goBook}
             />
           </aside>
         </div>
       </div>
 
-      <div
-        className="fixed inset-x-0 z-[45] border-t border-vio-navy/[0.06] bg-vio-cream/95 px-4 py-3 shadow-[0_-8px_40px_-16px_rgba(30,58,95,0.12)] backdrop-blur-md lg:hidden"
-        style={{
-          bottom: 'calc(4.25rem + env(safe-area-inset-bottom, 0px))',
-        }}
-      >
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-vio-navy/45">
-              Tổng ước tính
-            </p>
-            <p className="font-heading text-lg text-vio-navy">
-              {formatVnd(total)}
-            </p>
-          </div>
-          <Button
-            type="button"
-            className="shrink-0 px-6 transition-all duration-300 hover:brightness-[1.04]"
-            onClick={goBook}
-          >
-            Đặt phòng ngay
-          </Button>
-        </div>
-      </div>
+      {/* Đã bỏ panel đặt phòng fixed ở mobile để tránh ghim dưới đáy, panel đặt phòng chỉ xuất hiện phía trên */}
     </div>
   )
 }

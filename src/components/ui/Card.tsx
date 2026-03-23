@@ -15,7 +15,7 @@ export function Card({
   return (
     <Tag
       className={cn(
-        'rounded-2xl bg-vio-white p-8 shadow-soft-lg ring-1 ring-vio-navy/[0.06] transition-shadow duration-500 ease-[var(--ease-vio)]',
+        'rounded-2xl bg-vio-white p-8 shadow-md ring-1 ring-vio-navy/[0.06] transition-all duration-300 ease-[var(--ease-vio)] hover:scale-[1.02]',
         className,
       )}
       {...props}
@@ -44,7 +44,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        'font-heading text-2xl font-medium leading-[1.25] tracking-[0.02em] text-vio-navy',
+        'font-heading text-2xl font-medium leading-[1.25] tracking-wide text-vio-navy',
         className,
       )}
       {...props}

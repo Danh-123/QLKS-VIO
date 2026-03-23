@@ -81,10 +81,10 @@ export function RoomsManagePage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-8">
         <div>
-          <h1 className="font-heading text-3xl font-medium tracking-tight text-vio-navy md:text-4xl">
+          <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
             Quản lý phòng
           </h1>
           <p className="mt-2 text-sm text-vio-navy/50">
@@ -96,7 +96,8 @@ export function RoomsManagePage() {
         </Button>
       </div>
 
-      <Table>
+      <div className="mt-24">
+        <Table>
         <TableHead>
           <TableRow>
             <TableHeaderCell>Mã</TableHeaderCell>
@@ -136,7 +137,8 @@ export function RoomsManagePage() {
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
 
       <Modal
         open={open}

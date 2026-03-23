@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ensureDemoBookingsSeeded,
-  getBookings,
-  statusLabels,
-} from '../booking/bookingStorage'
+import { statusLabels } from '../booking/bookingStorage'
 import type { BookingStatus, StoredBooking } from '../booking/types'
 import { ScrollReveal } from '../components/guest/ScrollReveal'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { EmptyState } from '../components/ui/EmptyState'
+import { LoadingSpinner } from '../components/ui/LoadingSpinner'
+import { Skeleton } from '../components/ui/Skeleton'
 import { formatVnd } from '../data/roomDetails'
+import { useFakeApiData } from '../lib/useFakeApiData'
 import { cn } from '../lib/cn'
+import { useAppData } from '../state/AppDataContext'
 
 function statusStyle(s: BookingStatus) {
   switch (s) {
@@ -34,7 +35,7 @@ function statusStyle(s: BookingStatus) {
 function BookingRow({ b }: { b: StoredBooking }) {
   return (
     <li>
-      <Card className="flex flex-col gap-6 p-8 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-soft-2xl md:flex-row md:items-center md:justify-between md:gap-10">
+      <Card className="flex flex-col gap-6 p-8 transition-all duration-500 hover:-translate-y-0.5 hover:shadow-soft-2xl md:flex-row md:items-center md:justify-between md:gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -79,10 +80,7 @@ function BookingRow({ b }: { b: StoredBooking }) {
 
 export function BookingHistoryPage() {
   const navigate = useNavigate()
-  const [list] = useState<StoredBooking[]>(() => {
-    ensureDemoBookingsSeeded()
-    return getBookings()
-  })
+  const { bookings: list } = useAppData()
 
   const sorted = useMemo(
     () =>
@@ -93,13 +91,15 @@ export function BookingHistoryPage() {
     [list],
   )
 
+  const { loading, data: displayedBookings } = useFakeApiData(sorted, 900)
+
   return (
-    <div className="mx-auto max-w-3xl px-6 py-24 md:px-10 md:py-32">
+    <div className="vio-container vio-section">
       <ScrollReveal>
         <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/40">
           VIO
         </p>
-        <h1 className="mt-4 font-heading text-4xl font-medium leading-[1.12] tracking-[0.02em] text-vio-navy md:text-5xl">
+        <h1 className="mt-4 font-heading text-4xl font-medium leading-[1.12] tracking-wide text-vio-navy md:text-5xl">
           Lịch sử đặt phòng
         </h1>
         <p className="mt-6 text-base leading-[1.85] tracking-[0.02em] text-vio-navy/55">
@@ -107,26 +107,59 @@ export function BookingHistoryPage() {
         </p>
       </ScrollReveal>
 
-      {sorted.length === 0 ? (
-        <Card className="mt-14 p-10 text-center">
-          <p className="text-vio-navy/55">Chưa có đặt phòng nào.</p>
-          <Button
-            type="button"
-            className="mt-8"
-            onClick={() => navigate('/search')}
-          >
-            Bắt đầu đặt phòng
-          </Button>
-        </Card>
-      ) : (
-        <ul className="mt-14 flex flex-col gap-8">
-          {sorted.map((b) => (
-            <BookingRow key={b.id} b={b} />
-          ))}
-        </ul>
-      )}
+      <div className="mt-10 flex items-center justify-center">
+        {loading ? <LoadingSpinner label="Đang tải lịch sử đặt phòng..." /> : null}
+      </div>
 
-      <div className="mt-14 flex flex-wrap gap-4">
+      <div className="mt-24 transition-opacity duration-300" style={{ opacity: loading ? 0.9 : 1 }}>
+        {loading ? (
+          <ul className="flex flex-col gap-8">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <li key={idx}>
+                <Card className="p-8">
+                  <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                        <Skeleton className="h-4 w-40" />
+                      </div>
+                      <Skeleton className="h-6 w-56" />
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                    <div className="space-y-3 md:w-40 md:text-right">
+                      <Skeleton className="ml-auto h-4 w-16" />
+                      <Skeleton className="ml-auto h-6 w-28" />
+                      <Skeleton className="ml-auto h-4 w-24" />
+                    </div>
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        ) : displayedBookings.length === 0 ? (
+          <EmptyState
+            className="p-10 text-center"
+            title="Chưa có đặt phòng nào"
+            description="Khi bạn hoàn tất một booking, lịch sử sẽ hiển thị tại đây."
+            action={
+              <Button
+                type="button"
+                onClick={() => navigate('/search')}
+              >
+                Bắt đầu đặt phòng
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="flex flex-col gap-8">
+            {displayedBookings.map((b) => (
+              <BookingRow key={b.id} b={b} />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="mt-24 flex flex-wrap gap-4">
         <Button
           type="button"
           variant="secondary"

@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
 import { ScrollReveal } from '../components/guest/ScrollReveal'
@@ -174,7 +175,7 @@ function FeaturedRoomCard({
             aria-hidden
           />
           <div className="absolute inset-x-0 bottom-0 p-8 md:p-10">
-            <p className="font-heading text-2xl font-medium tracking-[0.02em] text-vio-white md:text-3xl">
+            <p className="font-heading text-2xl font-medium tracking-wide text-vio-white md:text-3xl">
               {name}
             </p>
             <span className="mt-4 inline-flex items-center text-xs font-medium uppercase tracking-[0.28em] text-vio-white/90">
@@ -192,25 +193,42 @@ function FeaturedRoomCard({
 
 export function HomePage() {
   const navigate = useNavigate()
+  const heroRef = useRef<HTMLElement | null>(null)
+  const bannerRef = useRef<HTMLElement | null>(null)
+
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
+  const heroScale = useTransform(heroProgress, [0, 1], [1.02, 1.09])
+  const heroY = useTransform(heroProgress, [0, 1], [0, 36])
+
+  const { scrollYProgress: bannerProgress } = useScroll({
+    target: bannerRef,
+    offset: ['start end', 'end start'],
+  })
+  const bannerScale = useTransform(bannerProgress, [0, 1], [1.03, 1.08])
+  const bannerY = useTransform(bannerProgress, [0, 1], [18, -18])
 
   return (
     <div className="pb-40 md:pb-0">
-      <section className="relative flex min-h-[100dvh] min-h-screen w-full flex-col justify-end overflow-hidden">
+      <section ref={heroRef} className="relative flex min-h-[100dvh] min-h-screen w-full flex-col justify-end overflow-hidden">
         <motion.img
           src={heroImage}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
+          style={{ scale: heroScale, y: heroY }}
           loading="eager"
-          initial={{ scale: 1.08, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.15, ease: heroEase }}
+          initial={{ scale: 1.06, opacity: 0 }}
+          animate={{ scale: 1.02, opacity: 1 }}
+          transition={{ duration: 1.25, ease: heroEase }}
         />
         <div
-          className="absolute inset-0 bg-gradient-to-t from-vio-navy/85 via-vio-navy/38 to-vio-navy/[0.18]"
+          className="absolute inset-0 bg-gradient-to-t from-vio-navy/82 via-vio-navy/32 to-vio-navy/[0.12]"
           aria-hidden
         />
         <motion.div
-          className="relative mx-auto flex w-full max-w-7xl flex-col justify-end px-6 pb-16 pt-28 md:px-10 md:pb-24"
+          className="vio-container relative flex w-full flex-col justify-end pb-20 pt-32 md:pb-28"
           variants={heroContainer}
           initial="hidden"
           animate="show"
@@ -223,21 +241,20 @@ export function HomePage() {
           </motion.p>
           <motion.h1
             variants={heroItem}
-            className="max-w-4xl font-heading text-[2.35rem] font-medium leading-[1.08] tracking-[0.01em] text-vio-white sm:text-5xl md:text-6xl md:leading-[1.05] lg:text-7xl"
+            className="font-heading text-6xl font-medium leading-[1.04] tracking-[0.04em] text-vio-white sm:text-6xl md:text-7xl md:leading-[1.02] lg:text-[5.4rem]"
           >
-            A Sanctuary of Calm and Luxury
+            A Sanctuary of Stillness
           </motion.h1>
           <motion.p
             variants={heroItem}
-            className="mt-8 max-w-xl text-base leading-[1.75] tracking-[0.02em] text-vio-white/88 md:text-lg md:leading-[1.8]"
+            className="mt-10 max-w-xl text-base leading-[1.85] tracking-[0.03em] text-vio-white/86 md:text-lg"
           >
-            Nơi thời gian chậm lại — giữa vườn nhiệt đới, ánh sáng mờ và dịch vụ
-            thầm lặng.
+            Time slows between sea breeze, soft light, and quiet rituals.
           </motion.p>
-          <motion.div variants={heroItem} className="mt-12">
+          <motion.div variants={heroItem} className="mt-14">
             <Button
               type="button"
-              className="min-h-12 bg-vio-white px-8 text-vio-navy transition-all duration-300 ease-[var(--ease-vio)] hover:brightness-[1.03] hover:shadow-none"
+              className="min-h-12"
               onClick={() => navigate('/search')}
             >
               Đặt phòng ngay
@@ -247,21 +264,21 @@ export function HomePage() {
       </section>
 
       <section className="bg-vio-cream">
-        <div className="mx-auto max-w-7xl px-6 py-24 md:px-10 md:py-32">
-          <ScrollReveal className="max-w-2xl">
+        <div className="vio-container vio-section">
+          <ScrollReveal>
             <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/45">
               Phòng nổi bật
             </p>
-            <h2 className="mt-6 font-heading text-4xl font-medium leading-[1.12] tracking-[0.02em] text-vio-navy md:text-5xl lg:text-6xl">
+            <h2 className="mt-8 font-heading text-4xl font-medium leading-[1.08] tracking-[0.03em] text-vio-navy md:text-5xl lg:text-[3.4rem]">
               Không gian mở, ánh sáng tự nhiên
             </h2>
-            <p className="mt-8 text-base leading-[1.85] tracking-[0.02em] text-vio-navy/55 md:text-lg">
+            <p className="mt-10 text-base leading-[1.9] tracking-[0.02em] text-vio-navy/55 md:text-lg">
               Ba phong cách lưu trú — hình ảnh lớn, chữ ít, mỗi phòng là một
               nhịp riêng.
             </p>
           </ScrollReveal>
 
-          <div className="mt-20 grid gap-8 md:grid-cols-2 md:gap-10 lg:grid-cols-3">
+          <div className="mt-24 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {featuredRooms.map((room, i) => (
               <ScrollReveal key={room.id} delay={i * 0.08} y={32}>
                 <FeaturedRoomCard
@@ -277,16 +294,16 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-vio-navy/[0.05] bg-vio-white">
-        <div className="mx-auto grid max-w-7xl gap-16 px-6 py-24 md:grid-cols-2 md:items-center md:gap-20 md:px-10 md:py-32">
+      <section className="bg-vio-white">
+        <div className="vio-container vio-section grid gap-12 md:grid-cols-2 md:items-center">
           <ScrollReveal className="order-2 md:order-1">
             <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/45">
               Triết lý VIO
             </p>
-            <h2 className="mt-6 font-heading text-4xl font-medium leading-[1.15] tracking-[0.02em] text-vio-navy md:text-5xl lg:text-[3.25rem]">
+            <h2 className="mt-8 font-heading text-4xl font-medium leading-[1.1] tracking-[0.03em] text-vio-navy md:text-5xl lg:text-[3.3rem]">
               Chậm rãi, tinh giản, chân thành
             </h2>
-            <div className="mt-10 space-y-6 text-base leading-[1.9] tracking-[0.02em] text-vio-navy/58 md:text-lg">
+            <div className="mt-12 space-y-6 text-base leading-[1.95] tracking-[0.02em] text-vio-navy/58 md:text-lg">
               <p>
                 Chúng tôi tin vào sự im lặng của vật liệu tự nhiên — gỗ, đá,
                 linen — và vào những khoảnh khắc không cần gắng gượng. Mỗi
@@ -312,23 +329,23 @@ export function HomePage() {
       </section>
 
       <section className="bg-vio-cream">
-        <div className="mx-auto max-w-7xl px-6 py-24 md:px-10 md:py-32">
-          <ScrollReveal className="mx-auto max-w-3xl text-center">
+        <div className="vio-container vio-section">
+          <ScrollReveal className="text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/45">
               Tiện ích
             </p>
-            <h2 className="mt-6 font-heading text-4xl font-medium leading-[1.12] tracking-[0.02em] text-vio-navy md:text-5xl">
+            <h2 className="mt-8 font-heading text-4xl font-medium leading-[1.08] tracking-[0.03em] text-vio-navy md:text-5xl lg:text-[3.2rem]">
               Mọi thứ cần thiết, không thừa
             </h2>
           </ScrollReveal>
-          <div className="mt-20 grid gap-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-16 lg:gap-y-16">
+          <div className="mt-24 grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
             {amenities.map((item, i) => (
               <ScrollReveal key={item.title} delay={i * 0.05} y={28}>
                 <div className="flex flex-col gap-5">
                   <span className="text-vio-navy/35 transition-colors duration-300 hover:text-vio-gold/90">
                     {item.icon}
                   </span>
-                  <h3 className="font-heading text-xl font-medium tracking-[0.02em] text-vio-navy md:text-2xl">
+                  <h3 className="font-heading text-xl font-medium leading-[1.4] tracking-wide text-vio-navy md:text-2xl">
                     {item.title}
                   </h3>
                   <p className="text-sm leading-[1.85] tracking-[0.02em] text-vio-navy/55 md:text-base">
@@ -341,23 +358,24 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="relative min-h-[min(72vh,820px)] w-full overflow-hidden">
-        <img
+      <section ref={bannerRef} className="relative min-h-[min(72vh,820px)] w-full overflow-hidden">
+        <motion.img
           src={bannerImage}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
+          style={{ scale: bannerScale, y: bannerY }}
           loading="lazy"
         />
         <div
           className="absolute inset-0 bg-vio-navy/45"
           aria-hidden
         />
-        <div className="relative flex min-h-[min(72vh,820px)] items-center justify-center px-6 py-24 md:px-10">
-          <ScrollReveal className="max-w-3xl text-center" y={32}>
+        <div className="relative flex min-h-[min(72vh,820px)] items-center justify-center px-6 py-16 md:py-24">
+          <ScrollReveal className="text-center" y={32}>
             <p className="text-[11px] font-medium uppercase tracking-[0.36em] text-vio-white/88">
               VIO Experiences
             </p>
-            <h2 className="mt-8 font-heading text-3xl font-medium leading-[1.2] tracking-[0.02em] text-vio-white md:text-5xl md:leading-[1.15]">
+            <h2 className="mt-8 font-heading text-3xl font-medium leading-[1.2] tracking-wide text-vio-white md:text-5xl md:leading-[1.15]">
               Một buổi chiều bên hồ — một buổi tối bên bàn
             </h2>
             <p className="mx-auto mt-8 max-w-xl text-base leading-[1.85] text-vio-white/85 md:text-lg">
@@ -367,10 +385,10 @@ export function HomePage() {
             <div className="mt-12">
               <Button
                 type="button"
-                className="bg-vio-white px-8 text-vio-navy transition-all duration-300 hover:brightness-[1.03]"
+                className="px-8"
                 onClick={() => navigate('/rooms')}
               >
-                Khám phá trải nghiệm
+                Discover the Experience
               </Button>
             </div>
           </ScrollReveal>
@@ -378,11 +396,11 @@ export function HomePage() {
       </section>
 
       <section className="border-t border-vio-navy/[0.05] bg-vio-white">
-        <ScrollReveal className="mx-auto max-w-4xl px-6 py-24 text-center md:px-10 md:py-32">
-          <h2 className="font-heading text-4xl font-medium leading-[1.15] tracking-[0.02em] text-vio-navy md:text-5xl lg:text-6xl">
+        <ScrollReveal className="vio-container vio-section text-center">
+          <h2 className="font-heading text-4xl font-medium leading-[1.15] tracking-wide text-vio-navy md:text-5xl lg:text-5xl">
             Ready to experience VIO?
           </h2>
-          <p className="mx-auto mt-8 max-w-2xl text-base leading-[1.9] tracking-[0.02em] text-vio-navy/55 md:text-lg">
+          <p className="mx-auto mt-8 text-base leading-[1.9] tracking-[0.02em] text-vio-navy/55 md:text-lg">
             Đặt chỗ trong vài bước — chúng tôi giữ phòng cho bạn với sự trân
             trọng âm thầm.
           </p>
@@ -406,7 +424,7 @@ export function HomePage() {
       >
         <Button
           type="button"
-          className="w-full bg-vio-navy py-3.5 text-vio-white shadow-soft-sm transition-all duration-300 hover:brightness-110"
+          className="w-full"
           onClick={() => navigate('/search')}
         >
           Đặt phòng ngay

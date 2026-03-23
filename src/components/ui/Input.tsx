@@ -20,8 +20,8 @@ export function Input({
         <input
           id={id}
           className={cn(
-            'peer block w-full rounded-xl border-0 bg-vio-white px-4 pb-3.5 pt-7 text-base leading-relaxed tracking-[0.02em] text-vio-navy shadow-soft-sm ring-1 ring-vio-navy/10 transition-all duration-300 ease-[var(--ease-vio)] placeholder:text-transparent focus:ring-2 focus:ring-vio-navy/20 focus:outline-none',
-            error && 'ring-vio-gold/50 focus:ring-vio-gold/40',
+            'peer block w-full rounded-xl border-0 bg-vio-white px-4 pb-3.5 pt-7 text-base leading-relaxed tracking-[0.02em] text-vio-navy shadow-sm ring-1 ring-vio-navy/12 transition-all duration-300 ease-[var(--ease-vio)] placeholder:text-transparent focus:ring-2 focus:ring-vio-navy/35 focus:outline-none',
+            error && 'ring-vio-gold/50 focus:ring-vio-gold/45',
             className,
           )}
           placeholder=" "

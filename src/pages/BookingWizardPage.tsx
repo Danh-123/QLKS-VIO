@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { addBooking, ensureDemoBookingsSeeded } from '../booking/bookingStorage'
 import type { BookingWizardState } from '../booking/types'
 import { BookingSummaryPanel } from '../components/booking/BookingSummaryPanel'
 import { DateRangeCalendar } from '../components/booking/DateRangeCalendar'
@@ -9,13 +8,12 @@ import { WizardProgressBar } from '../components/booking/WizardProgressBar'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
-import { rooms } from '../data/rooms'
 import {
   formatVnd,
   getRoomDetail,
-  nightsBetween,
 } from '../data/roomDetails'
 import { cn } from '../lib/cn'
+import { useAppData } from '../state/AppDataContext'
 
 const field =
   'mt-2 w-full rounded-xl border-0 bg-vio-white px-4 py-3 text-base text-vio-navy shadow-soft-sm ring-1 ring-vio-navy/10 transition-all duration-300 focus:ring-2 focus:ring-vio-navy/20 focus:outline-none'
@@ -53,17 +51,23 @@ function emptyState(): BookingWizardState {
 
 function initialFormFromParams(
   searchParams: URLSearchParams,
+  draft: Pick<
+    BookingWizardState,
+    'roomId' | 'checkIn' | 'checkOut' | 'guests' | 'adults' | 'children'
+  >,
 ): BookingWizardState {
-  ensureDemoBookingsSeeded()
-  const g = Math.max(1, parseInt(searchParams.get('guests') ?? '2', 10) || 2)
+  const g = Math.max(
+    1,
+    parseInt(searchParams.get('guests') ?? draft.guests ?? '2', 10) || 2,
+  )
   return {
     ...emptyState(),
-    roomId: searchParams.get('room') ?? '',
-    checkIn: searchParams.get('checkIn') ?? '',
-    checkOut: searchParams.get('checkOut') ?? '',
+    roomId: searchParams.get('room') ?? draft.roomId,
+    checkIn: searchParams.get('checkIn') ?? draft.checkIn,
+    checkOut: searchParams.get('checkOut') ?? draft.checkOut,
     guests: String(g),
-    adults: String(g),
-    children: '0',
+    adults: draft.adults || String(g),
+    children: draft.children || '0',
   }
 }
 
@@ -76,9 +80,20 @@ function emailOk(s: string) {
 export function BookingWizardPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const {
+    rooms,
+    bookingDraft,
+    setBookingDraft,
+    createBooking,
+    todayIso,
+    isValidDateRange,
+    isRoomAvailable,
+    getUnavailableRoomIds,
+    calculatePricing,
+  } = useAppData()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<BookingWizardState>(() =>
-    initialFormFromParams(searchParams),
+    initialFormFromParams(searchParams, bookingDraft),
   )
   const [bookingRef, setBookingRef] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -94,18 +109,27 @@ export function BookingWizardPage() {
   const childrenN = Math.max(0, parseInt(form.children, 10) || 0)
   const guestTotal = adultsN + childrenN
 
-  const nights = useMemo(
-    () => nightsBetween(form.checkIn, form.checkOut),
-    [form.checkIn, form.checkOut],
+  const pricing = useMemo(
+    () =>
+      selectedRoom
+        ? calculatePricing(selectedRoom.id, form.checkIn, form.checkOut)
+        : { nights: 1, subtotal: 0, serviceFee: 0, total: 0 },
+    [selectedRoom, calculatePricing, form.checkIn, form.checkOut],
   )
 
-  const subtotal = useMemo(() => {
-    if (!selectedRoom) return 0
-    return selectedRoom.pricePerNight * nights
-  }, [selectedRoom, nights])
+  const nights = pricing.nights
+  const subtotal = pricing.subtotal
+  const tax = pricing.serviceFee
+  const total = pricing.total
 
-  const tax = useMemo(() => Math.round(subtotal * 0.08), [subtotal])
-  const total = subtotal + tax
+  const dateRangeValid = isValidDateRange(form.checkIn, form.checkOut)
+  const unavailableRoomIds = useMemo(
+    () => getUnavailableRoomIds(form.checkIn, form.checkOut),
+    [getUnavailableRoomIds, form.checkIn, form.checkOut],
+  )
+  const selectedRoomAvailable = selectedRoom
+    ? isRoomAvailable(selectedRoom.id, form.checkIn, form.checkOut)
+    : false
 
   const update = useCallback(
     <K extends keyof BookingWizardState>(key: K, value: BookingWizardState[K]) => {
@@ -122,8 +146,8 @@ export function BookingWizardPage() {
         setError('Chọn ngày đến và ngày đi để tiếp tục.')
         return false
       }
-      if (new Date(form.checkOut) <= new Date(form.checkIn)) {
-        setError('Ngày trả phòng phải sau ngày nhận.')
+      if (!dateRangeValid) {
+        setError('Ngày trả phòng phải sau ngày nhận và không ở quá khứ.')
         return false
       }
       if (guestTotal < 1 || guestTotal > 12) {
@@ -134,6 +158,10 @@ export function BookingWizardPage() {
     if (s === 2) {
       if (!form.roomId) {
         setError('Chọn một phòng để tiếp tục.')
+        return false
+      }
+      if (!selectedRoomAvailable) {
+        setError('Phòng đã hết trong khoảng thời gian đã chọn. Vui lòng chọn phòng khác.')
         return false
       }
     }
@@ -175,7 +203,6 @@ export function BookingWizardPage() {
 
   const confirm = () => {
     if (!validateStep(4) || !selectedRoom) return
-    const id = `vio-${Date.now()}`
     const prefs = [
       form.floorPref !== 'any' ? `Tầng: ${form.floorPref}` : '',
       form.smoking ? 'Hút thuốc' : 'Không hút thuốc',
@@ -184,19 +211,25 @@ export function BookingWizardPage() {
     ]
       .filter(Boolean)
       .join(' · ')
-    addBooking({
-      id,
-      createdAt: new Date().toISOString(),
-      roomId: form.roomId,
-      roomName: selectedRoom.name,
-      checkIn: form.checkIn,
-      checkOut: form.checkOut,
-      guests: guestTotal,
-      status: 'confirmed',
-      totalVnd: total,
-      preferencesNote: prefs || undefined,
-    })
-    setBookingRef(id)
+    try {
+      const booking = createBooking({
+        roomId: form.roomId,
+        roomName: selectedRoom.name,
+        checkIn: form.checkIn,
+        checkOut: form.checkOut,
+        guests: guestTotal,
+        totalVnd: total,
+        preferencesNote: prefs || undefined,
+        status: 'confirmed',
+        customer: {
+          name: form.fullName,
+          email: form.email,
+        },
+      })
+      setBookingRef(booking.id)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Không thể xác nhận đặt phòng.')
+    }
   }
 
   const firstName = form.fullName.trim().split(/\s+/)[0] || 'Quý'
@@ -205,12 +238,12 @@ export function BookingWizardPage() {
     if (step === 1) {
       return (
         Boolean(form.checkIn && form.checkOut) &&
-        new Date(form.checkOut) > new Date(form.checkIn) &&
+        dateRangeValid &&
         guestTotal >= 1 &&
         guestTotal <= 12
       )
     }
-    if (step === 2) return Boolean(form.roomId)
+    if (step === 2) return Boolean(form.roomId && selectedRoomAvailable)
     if (step === 3) return true
     if (step === 4) {
       return (
@@ -224,7 +257,7 @@ export function BookingWizardPage() {
       )
     }
     return true
-  }, [step, form, guestTotal])
+  }, [step, form, guestTotal, dateRangeValid, selectedRoomAvailable])
 
   const showSticky =
     step < 5 || (step === 5 && !bookingRef)
@@ -248,10 +281,35 @@ export function BookingWizardPage() {
     total,
   }
 
+  useEffect(() => {
+    setBookingDraft({
+      roomId: form.roomId,
+      checkIn: form.checkIn,
+      checkOut: form.checkOut,
+      guests: String(guestTotal),
+      adults: form.adults,
+      children: form.children,
+    })
+  }, [
+    form.roomId,
+    form.checkIn,
+    form.checkOut,
+    form.adults,
+    form.children,
+    guestTotal,
+    setBookingDraft,
+  ])
+
+  useEffect(() => {
+    if (form.roomId && unavailableRoomIds.has(form.roomId)) {
+      setForm((prev) => ({ ...prev, roomId: '' }))
+    }
+  }, [form.roomId, unavailableRoomIds])
+
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10 pb-40 md:px-10 md:py-14 md:pb-20">
-      <div className="lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-14 xl:grid-cols-[1fr_360px] xl:gap-16">
-        <div className="min-w-0">
+    <div className="vio-container vio-section pb-40 md:pb-20">
+      <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-12">
+        <div className="min-w-0 lg:col-span-2">
           {step < 5 || (step === 5 && !bookingRef) ? (
             <WizardProgressBar current={bookingRef ? 5 : step} className="mb-10" />
           ) : (
@@ -311,7 +369,7 @@ export function BookingWizardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.55, ease: easeLux }}
                   >
-                    <h2 className="font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+                    <h2 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                       Ngày & khách
                     </h2>
                     <p className="mt-3 max-w-xl text-sm leading-relaxed tracking-[0.02em] text-vio-navy/50">
@@ -327,6 +385,7 @@ export function BookingWizardPage() {
                     <DateRangeCalendar
                       checkIn={form.checkIn}
                       checkOut={form.checkOut}
+                      minDate={todayIso}
                       onChange={(ci, co) => {
                         update('checkIn', ci)
                         update('checkOut', co)
@@ -422,7 +481,7 @@ export function BookingWizardPage() {
 
               {step === 2 && (
                 <div>
-                  <h2 className="font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+                  <h2 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                     Chọn phòng
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-vio-navy/50">
@@ -432,6 +491,7 @@ export function BookingWizardPage() {
                     {rooms.map((r) => {
                       const d = getRoomDetail(r.id)
                       const active = form.roomId === r.id
+                      const unavailable = unavailableRoomIds.has(r.id)
                       return (
                         <motion.article
                           key={r.id}
@@ -442,12 +502,17 @@ export function BookingWizardPage() {
                         >
                           <button
                             type="button"
-                            onClick={() => update('roomId', r.id)}
+                            disabled={unavailable}
+                            onClick={() => {
+                              if (unavailable) return
+                              update('roomId', r.id)
+                            }}
                             className={cn(
                               'group w-full overflow-hidden rounded-xl text-left ring-1 transition-all duration-300',
                               active
                                 ? 'ring-2 ring-vio-navy ring-offset-2 ring-offset-vio-cream shadow-soft'
                                 : 'ring-vio-navy/[0.08] hover:ring-vio-navy/18',
+                              unavailable && 'cursor-not-allowed opacity-50',
                             )}
                           >
                             <div className="aspect-[5/3] overflow-hidden">
@@ -472,12 +537,14 @@ export function BookingWizardPage() {
                               <span
                                 className={cn(
                                   'mt-5 inline-flex rounded-xl px-5 py-2.5 text-sm font-medium transition-all duration-300',
-                                  active
+                                  unavailable
+                                    ? 'bg-vio-cream/60 text-vio-navy/55'
+                                    : active
                                     ? 'bg-vio-navy text-vio-white'
                                     : 'bg-vio-cream/80 text-vio-navy hover:bg-vio-cream',
                                 )}
                               >
-                                Chọn phòng
+                                {unavailable ? 'Hết phòng' : 'Chọn phòng'}
                               </span>
                             </div>
                           </button>
@@ -490,13 +557,13 @@ export function BookingWizardPage() {
 
               {step === 3 && (
                 <Card className="border-0 bg-vio-white/95 shadow-soft-sm">
-                  <h2 className="font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+                    <h2 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                     Sở thích lưu trú
                   </h2>
                   <p className="mt-3 text-sm text-vio-navy/50">
                     Ghi nhận nhẹ — chúng tôi sẽ cố gắng đáp ứng theo tình trạng thực tế.
                   </p>
-                  <div className="mt-10 space-y-10">
+                  <div className="mt-10 space-y-6">
                     <div>
                       <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-vio-navy/45">
                         Tầng
@@ -593,7 +660,7 @@ export function BookingWizardPage() {
 
               {step === 4 && selectedRoom && (
                 <Card className="border-0 bg-vio-white/95 shadow-soft-sm">
-                  <h2 className="font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+                  <h2 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                     Thông tin của bạn
                   </h2>
                   <p className="mt-3 text-sm text-vio-navy/50">
@@ -678,7 +745,7 @@ export function BookingWizardPage() {
                   <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-gold/80">
                     Xác nhận
                   </p>
-                  <h2 className="mt-4 font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+                  <h2 className="mt-4 font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                     Kiểm tra trước khi xác nhận
                   </h2>
                   <div className="mt-10 space-y-4 text-sm leading-relaxed text-vio-navy/65">
@@ -706,7 +773,7 @@ export function BookingWizardPage() {
                   </div>
                   <Button
                     type="button"
-                    className="mt-10 w-full py-4 text-base transition-all duration-300 hover:brightness-[1.04] sm:w-auto sm:px-12"
+                    className="mt-10 w-full text-base sm:w-auto sm:px-12"
                     onClick={confirm}
                   >
                     Xác nhận đặt phòng
@@ -719,7 +786,7 @@ export function BookingWizardPage() {
                   <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-gold/90">
                     Đặt phòng thành công
                   </p>
-                  <h2 className="mt-6 font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy md:text-4xl">
+                  <h2 className="mt-6 font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
                     Cảm ơn bạn, {firstName}
                   </h2>
                   <p className="mx-auto mt-6 max-w-md text-sm leading-relaxed text-vio-navy/55">
@@ -799,7 +866,7 @@ export function BookingWizardPage() {
           ) : null}
         </div>
 
-        <aside className="sticky top-24 z-10 hidden h-fit lg:block">
+        <aside className="sticky top-24 z-10 hidden h-fit lg:col-span-1 lg:block">
           <BookingSummaryPanel {...summaryProps} />
         </aside>
       </div>
@@ -811,7 +878,7 @@ export function BookingWizardPage() {
             bottom: 'calc(4.25rem + env(safe-area-inset-bottom, 0px))',
           }}
         >
-          <div className="mx-auto flex max-w-lg items-center gap-3 md:max-w-none md:justify-end lg:hidden">
+          <div className="mx-auto flex items-center gap-3 md:justify-end lg:hidden">
             {step > 1 && !(step === 5 && bookingRef) ? (
               <Button
                 type="button"
@@ -832,7 +899,7 @@ export function BookingWizardPage() {
             </div>
             <Button
               type="button"
-              className="shrink-0 px-5 transition-all duration-300 hover:brightness-[1.04] disabled:opacity-40"
+              className="shrink-0 px-5 disabled:opacity-40"
               disabled={
                 step === 5 && !bookingRef
                   ? false

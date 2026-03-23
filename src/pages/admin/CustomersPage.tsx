@@ -1,8 +1,4 @@
 import { useState } from 'react'
-import {
-  initialCustomers,
-  type CustomerRow,
-} from '../../admin/mockData'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
@@ -14,9 +10,10 @@ import {
   TableHeaderCell,
   TableRow,
 } from '../../components/ui/Table'
+import { useAppData } from '../../state/AppDataContext'
 
 export function CustomersPage() {
-  const [rows, setRows] = useState<CustomerRow[]>(initialCustomers)
+  const { customers: rows, addCustomer } = useAppData()
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -26,25 +23,20 @@ export function CustomersPage() {
 
   const add = () => {
     if (!form.name.trim() || !form.email.trim()) return
-    setRows((r) => [
-      ...r,
-      {
-        id: `c-${Date.now()}`,
-        name: form.name,
-        email: form.email,
-        tier: form.tier,
-        stays: 0,
-      },
-    ])
+    addCustomer({
+      name: form.name,
+      email: form.email,
+      tier: form.tier,
+    })
     setForm({ name: '', email: '', tier: 'Silver' })
     setOpen(false)
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-8">
         <div>
-          <h1 className="font-heading text-3xl font-medium tracking-tight text-vio-navy md:text-4xl">
+          <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
             Khách hàng
           </h1>
           <p className="mt-2 text-sm text-vio-navy/50">
@@ -56,7 +48,8 @@ export function CustomersPage() {
         </Button>
       </div>
 
-      <Table>
+      <div className="mt-24">
+        <Table>
         <TableHead>
           <TableRow>
             <TableHeaderCell>Tên</TableHeaderCell>
@@ -79,7 +72,8 @@ export function CustomersPage() {
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
 
       <Modal
         open={open}

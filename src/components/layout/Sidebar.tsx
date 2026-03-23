@@ -75,7 +75,7 @@ export function Sidebar({
       )}
     >
       <a href="#" className="group mb-16 block outline-none">
-        <span className="font-heading text-3xl font-medium tracking-[0.02em] text-vio-navy transition-colors duration-300 group-hover:text-vio-navy/80">
+        <span className="font-heading text-3xl font-medium tracking-wide text-vio-navy transition-colors duration-300 group-hover:text-vio-navy/80">
           VIO
         </span>
         <span className="mt-2 block text-xs font-medium uppercase tracking-[0.28em] text-vio-navy/40">

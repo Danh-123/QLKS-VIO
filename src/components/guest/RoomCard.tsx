@@ -6,10 +6,16 @@ import { cn } from '../../lib/cn'
 type RoomCardProps = {
   room: RoomListing
   onDetail?: () => void
+  unavailable?: boolean
   className?: string
 }
 
-export function RoomCard({ room, onDetail, className }: RoomCardProps) {
+export function RoomCard({
+  room,
+  onDetail,
+  unavailable = false,
+  className,
+}: RoomCardProps) {
   return (
     <Card
       as="article"
@@ -22,7 +28,7 @@ export function RoomCard({ room, onDetail, className }: RoomCardProps) {
         <img
           src={room.image}
           alt=""
-          className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-vio)] group-hover:scale-[1.04]"
+          className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-vio)] group-hover:scale-[1.03]"
           loading="lazy"
         />
         <div
@@ -32,7 +38,7 @@ export function RoomCard({ room, onDetail, className }: RoomCardProps) {
       </div>
       <div className="flex flex-1 flex-col gap-6 p-8 md:p-10">
         <div className="space-y-1">
-          <h3 className="font-heading text-2xl font-medium tracking-tight text-vio-navy">
+          <h3 className="font-heading text-2xl font-medium leading-[1.15] tracking-wide text-vio-navy">
             {room.name}
           </h3>
           <p className="text-sm leading-relaxed text-vio-navy/55">
@@ -41,8 +47,14 @@ export function RoomCard({ room, onDetail, className }: RoomCardProps) {
         </div>
         <div className="mt-auto flex flex-wrap items-end justify-between gap-4">
           <p className="text-sm font-medium text-vio-navy/70">{room.priceFrom}</p>
-          <Button type="button" variant="secondary" onClick={onDetail}>
-            Xem chi tiết
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onDetail}
+            disabled={unavailable}
+            className="disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {unavailable ? 'Hết phòng' : 'Xem chi tiết'}
           </Button>
         </div>
       </div>

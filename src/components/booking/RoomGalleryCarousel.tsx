@@ -38,8 +38,10 @@ export function RoomGalleryCarousel({
             src={src}
             alt={i === 0 ? alt : ''}
             className={cn(
-              'absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-[var(--ease-vio)]',
-              i === index ? 'opacity-100' : 'pointer-events-none opacity-0',
+              'absolute inset-0 h-full w-full object-cover transition-all duration-700 ease-[var(--ease-vio)]',
+              i === index
+                ? 'opacity-100 scale-100'
+                : 'pointer-events-none opacity-0 scale-[1.04]',
             )}
             loading={i === 0 ? 'eager' : 'lazy'}
           />
