@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '../../lib/cn'
 
 const items = [
@@ -66,42 +66,42 @@ const items = [
 ] as const
 
 export function GuestMobileNav() {
+  const { pathname } = useLocation()
+  const isItemActive = (to: string) =>
+    to === '/' ? pathname === '/' : pathname.startsWith(to)
+
   return (
     <nav
       aria-label="Điều hướng di động"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-vio-navy/[0.06] bg-vio-white/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_32px_-16px_rgba(30,58,95,0.12)] backdrop-blur-md md:hidden"
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-around gap-1 px-2">
-        {items.map(({ to, label, icon }) => (
-          <li key={to} className="flex min-w-0 flex-1">
+        {items.map(({ to, label, icon }) => {
+          const isActive = isItemActive(to)
+
+          return (
+            <li key={to} className="flex min-w-0 flex-1">
             <NavLink
               to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                cn(
-                  'flex w-full flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium tracking-wide transition-all duration-300 ease-[var(--ease-vio)]',
-                  isActive
-                    ? 'text-vio-navy'
-                    : 'text-vio-navy/45 hover:text-vio-navy/75',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span
-                    className={cn(
-                      'transition-colors duration-300',
-                      isActive ? 'text-vio-gold' : 'text-vio-navy/35',
-                    )}
-                  >
-                    {icon}
-                  </span>
-                  <span className="truncate">{label}</span>
-                </>
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
+                'flex w-full flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium tracking-wide transition-all duration-300 ease-[var(--ease-vio)]',
+                isActive ? 'text-vio-navy' : 'text-vio-navy/45 hover:text-vio-navy/75',
               )}
+            >
+              <span
+                className={cn(
+                  'transition-colors duration-300',
+                  isActive ? 'text-vio-gold' : 'text-vio-navy/35',
+                )}
+              >
+                {icon}
+              </span>
+              <span className="truncate">{label}</span>
             </NavLink>
-          </li>
-        ))}
+            </li>
+          )
+        })}
       </ul>
     </nav>
   )

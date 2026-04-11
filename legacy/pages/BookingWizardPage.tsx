@@ -872,13 +872,9 @@ export function BookingWizardPage() {
       </div>
 
       {showSticky && (
-        <div
-          className="fixed inset-x-0 z-[45] border-t border-vio-navy/[0.06] bg-vio-cream/95 px-4 py-3 backdrop-blur-md"
-          style={{
-            bottom: 'calc(4.25rem + env(safe-area-inset-bottom, 0px))',
-          }}
-        >
-          <div className="mx-auto flex items-center gap-3 md:justify-end lg:hidden">
+        <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-[45] px-4 py-3 lg:hidden">
+          <div className="mx-auto w-full max-w-screen-xl rounded-2xl bg-vio-cream/95 px-4 py-3 shadow-soft-sm ring-1 ring-vio-navy/[0.06] backdrop-blur-md">
+            <div className="flex items-center gap-3 md:justify-end">
             {step > 1 && !(step === 5 && bookingRef) ? (
               <Button
                 type="button"
@@ -914,6 +910,7 @@ export function BookingWizardPage() {
             >
               {stickyLabel}
             </Button>
+            </div>
           </div>
         </div>
       )}
