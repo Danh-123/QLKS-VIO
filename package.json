@@ -4,9 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('.next', { recursive: true, force: true })\"",
     "dev": "next dev",
+    "predev": "npm run clean",
     "build": "next build",
+    "prebuild": "npm run clean",
     "start": "next start",
+    "start:clean": "npm run clean && npm run build && next start",
     "lint": "eslint"
   },
   "dependencies": {

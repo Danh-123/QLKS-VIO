@@ -148,7 +148,7 @@ export function GuestHeader() {
             </Button>
           </NavLink>
 
-          <NavLink to="/login" className="outline-none">
+          <NavLink to="/login?force=1" className="outline-none">
             <Button
               type="button"
               variant="secondary"

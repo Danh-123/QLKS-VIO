@@ -3,17 +3,17 @@ import {
   initialPricingRules,
   type PricingRule,
 } from '../../admin/mockData'
+import { AdminPageHero } from '../../components/admin/AdminPageHero'
 import { Button } from '../../components/ui/Button'
+import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from '../../components/ui/Table'
+
+const planFeatures = [
+  'Flexible cancellation window',
+  'Dedicated concierge support',
+  'Breakfast and lounge access',
+]
 
 export function PricingRulesPage() {
   const [rules, setRules] = useState<PricingRule[]>(initialPricingRules)
@@ -47,72 +47,80 @@ export function PricingRulesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-8">
-        <div>
-          <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
-            Giá & ưu đãi
-          </h1>
-          <p className="mt-2 text-sm text-vio-navy/50">
-            Quy tắc điều chỉnh giá — bật / tắt nhanh.
-          </p>
-        </div>
+    <div className="space-y-8">
+      <AdminPageHero
+        eyebrow="Revenue Control"
+        title="Pricing Plans"
+        description="Shape rate strategy with premium plans, dynamic adjustments, and seasonal offers."
+        imageUrl="https://images.unsplash.com/photo-1468824357306-a439d58ccb1c?auto=format&fit=crop&w=1800&q=80"
+      />
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div />
         <Button type="button" onClick={() => setOpen(true)}>
-          Thêm quy tắc
+          Add Rule
         </Button>
       </div>
 
-      <div className="mt-24">
-        <Table>
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>Tên</TableHeaderCell>
-            <TableHeaderCell>Loại</TableHeaderCell>
-            <TableHeaderCell>Điều chỉnh</TableHeaderCell>
-            <TableHeaderCell>Trạng thái</TableHeaderCell>
-            <TableHeaderCell className="text-right">Bật/tắt</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rules.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="font-medium">{r.name}</TableCell>
-              <TableCell>{r.type}</TableCell>
-              <TableCell>{r.adjustment}</TableCell>
-              <TableCell>{r.active ? 'Đang áp dụng' : 'Tắt'}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="px-4 py-2 text-xs"
-                  onClick={() => toggle(r.id)}
-                >
-                  {r.active ? 'Tắt' : 'Bật'}
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-        </Table>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {rules.map((rule) => (
+          <Card key={rule.id} goldBorder className="flex h-full flex-col gap-6 p-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.1em] text-vio-text-secondary">
+                {rule.type}
+              </p>
+              <h2 className="mt-2 font-heading text-3xl font-normal text-vio-navy">
+                {rule.name}
+              </h2>
+              <p className="mt-3 font-accent text-4xl font-normal text-vio-gold">
+                {rule.adjustment}
+              </p>
+            </div>
+
+            <ul className="space-y-2 text-sm text-vio-text-secondary">
+              {planFeatures.map((feature) => (
+                <li key={feature} className="flex items-start gap-2">
+                  <span className="mt-0.5 text-vio-gold">✓</span>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-auto flex items-center justify-between gap-3">
+              <span
+                className={rule.active ? 'text-sm text-vio-success' : 'text-sm text-vio-text-secondary'}
+              >
+                {rule.active ? 'Active' : 'Inactive'}
+              </span>
+              <Button
+                type="button"
+                className="px-4 py-2 text-xs transition-colors duration-200 hover:bg-vio-gold"
+                onClick={() => toggle(rule.id)}
+              >
+                {rule.active ? 'Disable' : 'Enable'}
+              </Button>
+            </div>
+          </Card>
+        ))}
       </div>
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Quy tắc mới"
+        title="New pricing rule"
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Đóng
+              Close
             </Button>
-            <Button onClick={add}>Thêm</Button>
+            <Button onClick={add}>Add</Button>
           </>
         }
       >
         <div className="flex flex-col gap-6">
           <Input
             id="pr-name"
-            label="Tên quy tắc"
+            label="Rule name"
             value={form.name}
             onChange={(e) =>
               setForm((f) => ({ ...f, name: e.target.value }))
@@ -120,7 +128,7 @@ export function PricingRulesPage() {
           />
           <Input
             id="pr-type"
-            label="Loại (nhãn)"
+            label="Plan type"
             value={form.type}
             onChange={(e) =>
               setForm((f) => ({ ...f, type: e.target.value }))
@@ -128,7 +136,7 @@ export function PricingRulesPage() {
           />
           <Input
             id="pr-adj"
-            label="Điều chỉnh (vd +15%)"
+            label="Price marker (ex: $320 or +15%)"
             value={form.adjustment}
             onChange={(e) =>
               setForm((f) => ({ ...f, adjustment: e.target.value }))

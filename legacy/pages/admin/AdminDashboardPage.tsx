@@ -1,234 +1,211 @@
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RTooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import {
-  dashboardStats,
-  revenueChartData,
-} from '../../admin/mockData'
-import type { BookingStatus } from '../../booking/types'
-import { statusLabels } from '../../booking/bookingStorage'
-import { StatCard } from '../../components/admin/StatCard'
-import { EmptyState } from '../../components/ui/EmptyState'
-import { LoadingSpinner } from '../../components/ui/LoadingSpinner'
-import { Skeleton } from '../../components/ui/Skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from '../../components/ui/Table'
-import { formatVnd } from '../../data/roomDetails'
-import { useFakeApiData } from '../../lib/useFakeApiData'
-import { useAppData } from '../../state/AppDataContext'
+import { useMemo, useState } from 'react'
+import type { BookingStatus } from '../../../types/booking'
+import { LuxuryPagination, LuxuryTable, type LuxuryColumn } from '../../components/ui/LuxuryTable'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { Card } from '../../components/ui/Card'
+import { useAdminDashboard } from '../../hooks/useAdminDashboard'
+import { cn } from '../../lib/cn'
 
-const statusOptions: BookingStatus[] = [
-  'pending',
-  'confirmed',
-  'checked-in',
-  'checked-out',
-  'cancelled',
-  'no-show',
-]
+const PAGE_SIZE = 6
+
+const statusLabels: Record<BookingStatus, string> = {
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  'checked-in': 'Checked In',
+  'checked-out': 'Checked Out',
+  cancelled: 'Cancelled',
+  'no-show': 'No Show',
+}
+
+type BookingRow = {
+  id: string
+  guest: string
+  room: string
+  checkIn: string
+  total: string
+  status: BookingStatus
+}
+
+function toBadgeStatus(status: BookingStatus): 'confirmed' | 'pending' | 'cancelled' {
+  if (status === 'confirmed' || status === 'checked-in' || status === 'checked-out') {
+    return 'confirmed'
+  }
+
+  if (status === 'cancelled' || status === 'no-show') {
+    return 'cancelled'
+  }
+
+  return 'pending'
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value / 25_000)
+}
+
+function StatTile({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint: string
+}) {
+  return (
+    <Card goldBorder className="p-6">
+      <p className="text-xs uppercase tracking-[0.1em] text-vio-text-secondary">
+        {label}
+      </p>
+      <p className="mt-3 font-heading text-5xl font-normal leading-none text-vio-navy">
+        {value}
+      </p>
+      <p className="mt-3 text-xs text-vio-text-secondary">{hint}</p>
+    </Card>
+  )
+}
 
 export function AdminDashboardPage() {
-  const { bookings, updateBookingStatus } = useAppData()
-  const sortedBookings = [...bookings].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  const [page, setPage] = useState(1)
+  const { bookings, metrics, loading, error, reload, updateBookingStatus } = useAdminDashboard()
+
+  const rows = useMemo<BookingRow[]>(
+    () =>
+      bookings.map((booking) => ({
+        id: booking.id,
+        guest: booking.guest,
+        room: booking.room,
+        checkIn: booking.checkIn,
+        total: formatCurrency(booking.totalVnd),
+        status: booking.status,
+      })),
+    [bookings],
   )
-  const { loading, data: displayedBookings } = useFakeApiData(sortedBookings, 950)
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageStart = (safePage - 1) * PAGE_SIZE
+  const pageRows = rows.slice(pageStart, pageStart + PAGE_SIZE)
+
+  const columns: LuxuryColumn<BookingRow>[] = [
+    { header: 'Booking ID', accessorKey: 'id', className: 'font-medium' },
+    { header: 'Guest', accessorKey: 'guest' },
+    { header: 'Room', accessorKey: 'room' },
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      render: (row) => <StatusBadge status={toBadgeStatus(row.status)} />,
+    },
+    {
+      header: 'Update',
+      accessorKey: 'update',
+      render: (row) => (
+        <select
+          value={row.status}
+          onChange={(event) =>
+            updateBookingStatus(row.id, event.target.value as BookingStatus)
+          }
+          className="rounded-full border border-vio-linen bg-vio-white px-3 py-1.5 text-xs text-vio-text-primary"
+        >
+          {Object.keys(statusLabels).map((status) => (
+            <option key={status} value={status}>
+              {statusLabels[status as BookingStatus]}
+            </option>
+          ))}
+        </select>
+      ),
+    },
+    { header: 'Check-in', accessorKey: 'checkIn' },
+    { header: 'Total', accessorKey: 'total', align: 'right' },
+  ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
-          Tổng quan
-        </h1>
-        <p className="mt-2 text-sm text-vio-navy/50">
-          Dữ liệu minh họa — giao diện tối giản, tập trung số liệu chính.
-        </p>
-      </div>
+    <div className="space-y-10">
+      <section className="relative overflow-hidden rounded-2xl">
+        <img
+          src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80"
+          alt=""
+          className="h-[280px] w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-vio-navy/80 via-vio-navy/55 to-vio-navy/20" />
 
-      <div className="mt-10 flex items-center justify-center">
-        {loading ? <LoadingSpinner label="Đang đồng bộ dữ liệu vận hành..." /> : null}
-      </div>
-
-      <div className="mt-24 transition-opacity duration-300" style={{ opacity: loading ? 0.9 : 1 }}>
-        {loading ? (
-          <div className="grid gap-8 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <div key={idx} className="rounded-2xl bg-vio-white p-8 ring-1 ring-vio-navy/[0.06]">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="mt-5 h-10 w-32" />
-                <Skeleton className="mt-4 h-4 w-40" />
-              </div>
-            ))}
+        <div className="absolute inset-0 flex items-end p-8 md:p-10">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-vio-gold">Admin Suite</p>
+            <h1 className="mt-3 font-heading text-5xl font-normal text-vio-white md:text-6xl">
+              Hotel Operations
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-vio-white/80 md:text-base">
+              One control center for reservations, occupancy, and guest experience quality.
+            </p>
           </div>
-        ) : (
-          <div className="grid gap-8 md:grid-cols-3">
-            <StatCard
-              label="Phòng"
-              value={dashboardStats.roomCount}
-              hint="Tổng hạng phòng khai thác"
-            />
-            <StatCard
-              label="Công suất"
-              value={`${dashboardStats.occupancyPct}%`}
-              hint="Ước tính tháng hiện tại"
-            />
-            <StatCard
-              label="Doanh thu (tháng)"
-              value={formatVnd(dashboardStats.revenueMonthVnd)}
-              hint="Trước thuế, mock"
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="mt-24 rounded-2xl bg-vio-white p-6 shadow-soft-lg ring-1 ring-vio-navy/[0.06] md:p-8">
-        <h2 className="font-heading text-xl text-vio-navy md:text-2xl">
-          Doanh thu theo ngày (tuần)
-        </h2>
-        <p className="mt-1 text-xs text-vio-navy/45">Đơn vị: VNĐ · demo</p>
-        <div className="mt-6 h-[280px] w-full">
-          {loading ? (
-            <div className="h-full space-y-4">
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <Skeleton key={idx} className="h-9 w-full" />
-              ))}
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueChartData}>
-                <defs>
-                  <linearGradient id="vioRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1e3a5f" stopOpacity={0.12} />
-                    <stop offset="100%" stopColor="#1e3a5f" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 6" stroke="#1e3a5f12" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: '#1e3a5f88' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: '#1e3a5f66' }}
-                  tickFormatter={(v) => `${Math.round(v / 1e6)}M`}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <RTooltip
-                  formatter={(v) => [
-                    typeof v === 'number' ? formatVnd(v) : '',
-                    '',
-                  ]}
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: '1px solid rgba(30,58,95,0.08)',
-                    fontSize: 12,
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="vnd"
-                  stroke="#1e3a5f"
-                  strokeWidth={1.5}
-                  fill="url(#vioRev)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
         </div>
-      </div>
+      </section>
 
-      <div className="mt-24">
-        <h2 className="font-heading text-xl text-vio-navy md:text-2xl">
-          Quản lý đặt phòng
-        </h2>
-        <div className="mt-6">
-          {loading ? (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableHeaderCell>Mã</TableHeaderCell>
-                  <TableHeaderCell>Khách</TableHeaderCell>
-                  <TableHeaderCell>Phòng</TableHeaderCell>
-                  <TableHeaderCell>Trạng thái</TableHeaderCell>
-                  <TableHeaderCell>Nhận phòng</TableHeaderCell>
-                  <TableHeaderCell className="text-right">Tổng</TableHeaderCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-20" /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : displayedBookings.length === 0 ? (
-            <EmptyState
-              title="Chưa có booking nào"
-              description="Dữ liệu đặt phòng sẽ xuất hiện tại đây khi có giao dịch mới."
-            />
-          ) : (
-          <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeaderCell>Mã</TableHeaderCell>
-              <TableHeaderCell>Khách</TableHeaderCell>
-              <TableHeaderCell>Phòng</TableHeaderCell>
-              <TableHeaderCell>Trạng thái</TableHeaderCell>
-              <TableHeaderCell>Nhận phòng</TableHeaderCell>
-              <TableHeaderCell className="text-right">Tổng</TableHeaderCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {displayedBookings.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell className="font-mono text-xs">{b.id}</TableCell>
-                <TableCell>{b.customerName || 'Khách lẻ'}</TableCell>
-                <TableCell>{b.roomName}</TableCell>
-                <TableCell>
-                  <select
-                    value={b.status}
-                    onChange={(e) =>
-                      updateBookingStatus(b.id, e.target.value as BookingStatus)
-                    }
-                    className="rounded-lg border-0 bg-vio-cream px-2 py-1 text-xs text-vio-navy/75 ring-1 ring-vio-navy/10"
-                  >
-                    {statusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {statusLabels[status]}
-                      </option>
-                    ))}
-                  </select>
-                </TableCell>
-                <TableCell>{b.checkIn}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatVnd(b.totalVnd)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          </Table>
+      {error ? (
+        <div
+          className={cn(
+            'rounded-lg border border-vio-error/30 bg-vio-error/5 px-4 py-3 text-sm text-vio-error',
+            'flex items-center justify-between gap-4',
           )}
+          role="alert"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={reload}
+            className="rounded-md border border-vio-error/40 px-3 py-1.5 text-xs transition-colors hover:bg-vio-error/10"
+          >
+            Retry
+          </button>
         </div>
-      </div>
+      ) : null}
+
+      <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Total Revenue"
+          value={formatCurrency(metrics.totalRevenueVnd)}
+          hint="Live total from booking API"
+        />
+        <StatTile
+          label="Occupancy Rate"
+          value={`${metrics.occupancyRate}%`}
+          hint="Based on room status API"
+        />
+        <StatTile
+          label="Active Bookings"
+          value={String(metrics.activeBookings)}
+          hint="Pending + confirmed + checked-in"
+        />
+        <StatTile
+          label="Average Daily Rate"
+          value={formatCurrency(metrics.averageDailyRateVnd)}
+          hint="Average value per active booking"
+        />
+      </section>
+
+      <Card className="p-0">
+        <div className="border-b border-vio-linen p-6">
+          <h2 className="font-heading text-4xl font-normal text-vio-navy">Recent Bookings</h2>
+          <p className="mt-2 text-sm text-vio-text-secondary">
+            Synced data feed prepared for external API switch.
+          </p>
+        </div>
+
+        <div className="p-6 pt-2">
+          <LuxuryTable
+            columns={columns}
+            data={pageRows}
+            loading={loading}
+            rowKey={(row) => row.id}
+            emptyMessage="No bookings available."
+          />
+          <LuxuryPagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      </Card>
     </div>
   )
 }

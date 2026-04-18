@@ -18,32 +18,33 @@ import {
   type MatrixRoomStatus,
   type UnassignedGuest,
 } from '../../admin/mockData'
+import { AdminPageHero } from '../../components/admin/AdminPageHero'
 import { InfoTip } from '../../components/admin/InfoTip'
 import { cn } from '../../lib/cn'
 
 function statusStyle(s: MatrixRoomStatus) {
   switch (s) {
     case 'available':
-      return 'bg-emerald-50/90 text-emerald-900/80 ring-emerald-200/60'
+      return 'bg-vio-white text-vio-navy border border-vio-linen'
     case 'occupied':
-      return 'bg-vio-navy/[0.08] text-vio-navy ring-vio-navy/15'
+      return 'bg-vio-dashboard-bg text-vio-navy border border-vio-linen'
     case 'dirty':
-      return 'bg-amber-50/90 text-amber-900/70 ring-amber-200/50'
+      return 'bg-vio-dashboard-bg text-vio-text-secondary border border-vio-linen'
     case 'maintenance':
-      return 'bg-rose-50/90 text-rose-900/75 ring-rose-200/50'
+      return 'bg-vio-dashboard-bg text-vio-text-secondary border border-vio-linen'
     case 'reserved':
-      return 'bg-vio-gold/12 text-vio-navy ring-vio-gold/30'
+      return 'bg-vio-gold/10 text-vio-navy border border-vio-gold/60'
     default:
-      return 'bg-vio-white ring-vio-navy/10'
+      return 'bg-vio-white text-vio-navy border border-vio-linen'
   }
 }
 
 const statusLabel: Record<MatrixRoomStatus, string> = {
-  available: 'Trống',
-  occupied: 'Có khách',
-  dirty: 'Dọn dẹp',
-  maintenance: 'Bảo trì',
-  reserved: 'Giữ chỗ',
+  available: 'Available',
+  occupied: 'Occupied',
+  dirty: 'Cleaning',
+  maintenance: 'Maintenance',
+  reserved: 'Reserved',
 }
 
 const operationalStatuses: MatrixRoomStatus[] = [
@@ -74,8 +75,8 @@ function DraggableGuest({ guest }: { guest: UnassignedGuest }) {
       {...listeners}
       {...attributes}
       className={cn(
-        'rounded-xl bg-vio-white px-4 py-2.5 text-sm font-medium text-vio-navy ring-1 ring-vio-navy/10 transition-shadow',
-        isDragging && 'z-50 shadow-soft ring-vio-navy/25',
+        'rounded-xl border border-vio-linen bg-vio-white px-4 py-2.5 text-sm font-medium text-vio-navy transition-shadow',
+        isDragging && 'z-50 border-vio-gold shadow-soft',
       )}
     >
       {guest.name}
@@ -99,9 +100,9 @@ function RoomCell({
     <div
       ref={droppable.setNodeRef}
       className={cn(
-        'min-h-[120px] rounded-xl p-4 ring-1 transition-shadow duration-300',
+        'min-h-[120px] rounded-xl p-3 transition-colors duration-200 hover:bg-vio-gold/[0.04]',
         statusStyle(room.status),
-        droppable.isOver && accept && 'ring-2 ring-vio-gold/60',
+        droppable.isOver && accept && 'border-vio-gold bg-vio-gold/10',
         !accept && 'opacity-60',
       )}
     >
@@ -222,38 +223,37 @@ export function RoomMatrixPage() {
 
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
-            Sơ đồ phòng
-          </h1>
-          <p className="mt-2 text-sm text-vio-navy/50">
-            Kéo khách vào phòng trống hoặc bấm vào phòng để đổi trạng thái vận hành.
-          </p>
-        </div>
+      <div className="space-y-8">
+        <AdminPageHero
+          eyebrow="Availability Intelligence"
+          title="Availability Matrix"
+          description="Track inventory room-by-room and assign guests with a calm, operational view."
+          imageUrl="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1800&q=80"
+        />
 
-        <div className="mt-24 flex flex-wrap gap-8">
-          <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-vio-navy/45">
-            Tầng
+        <div className="rounded-xl bg-vio-white p-6">
+        <div className="flex flex-wrap gap-6">
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.08em] text-vio-text-secondary">
+            Floor
             <select
               value={floor}
               onChange={(e) => setFloor(e.target.value)}
-              className="rounded-xl border-0 bg-vio-white px-4 py-2.5 text-sm font-normal tracking-normal text-vio-navy ring-1 ring-vio-navy/10"
+              className="rounded-lg border border-vio-linen bg-vio-white px-3 py-2 text-sm text-vio-navy"
             >
-              <option value="all">Tất cả</option>
+              <option value="all">All</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-vio-navy/45">
-            Hạng
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.08em] text-vio-text-secondary">
+            Type
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="rounded-xl border-0 bg-vio-white px-4 py-2.5 text-sm font-normal tracking-normal text-vio-navy ring-1 ring-vio-navy/10"
+              className="rounded-lg border border-vio-linen bg-vio-white px-3 py-2 text-sm text-vio-navy"
             >
-              <option value="all">Tất cả</option>
+              <option value="all">All</option>
               {matrixRoomTypes.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -261,30 +261,30 @@ export function RoomMatrixPage() {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-vio-navy/45">
-            Trạng thái
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.08em] text-vio-text-secondary">
+            Status
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border-0 bg-vio-white px-4 py-2.5 text-sm font-normal tracking-normal text-vio-navy ring-1 ring-vio-navy/10"
+              className="rounded-lg border border-vio-linen bg-vio-white px-3 py-2 text-sm text-vio-navy"
             >
-              <option value="all">Tất cả</option>
-              <option value="available">Trống</option>
-              <option value="occupied">Có khách</option>
-              <option value="dirty">Dọn dẹp</option>
-              <option value="maintenance">Bảo trì</option>
+              <option value="all">All</option>
+              <option value="available">Available</option>
+              <option value="occupied">Occupied</option>
+              <option value="dirty">Dirty</option>
+              <option value="maintenance">Maintenance</option>
             </select>
           </label>
         </div>
 
         {guests.length > 0 ? (
-          <div className="mt-24 rounded-xl bg-vio-white/80 p-6 ring-1 ring-vio-navy/[0.06]">
-            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-vio-navy/45">
-              Chưa xếp phòng
+          <div className="mt-8 rounded-xl border border-vio-linen bg-vio-white p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-vio-text-secondary">
+              Unassigned Guests
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               {guests.map((g) => (
-                <InfoTip key={g.id} content="Kéo vào ô phòng trống">
+                <InfoTip key={g.id} content="Drag into an available room">
                   <DraggableGuest guest={g} />
                 </InfoTip>
               ))}
@@ -292,11 +292,18 @@ export function RoomMatrixPage() {
           </div>
         ) : null}
 
-        <div className="mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-8 flex flex-wrap items-center gap-4 text-xs text-vio-text-secondary">
+          <span className="font-semibold uppercase tracking-[0.08em]">Legend</span>
+          <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-vio-white ring-1 ring-vio-linen" />Available</span>
+          <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-vio-dashboard-bg ring-1 ring-vio-linen" />Booked</span>
+          <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-vio-gold/20 ring-1 ring-vio-gold" />Selected</span>
+        </div>
+
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((room) => (
             <InfoTip
               key={room.id}
-              content={`${room.code} · ${room.type} · Tầng ${room.floor} · ${statusLabel[room.status]}${room.guestName ? ` · ${room.guestName}` : ''}`}
+              content={`${room.code} · ${room.type} · Floor ${room.floor} · ${statusLabel[room.status]}${room.guestName ? ` · ${room.guestName}` : ''}`}
             >
               <RoomCell room={room}>
                 <button
@@ -305,29 +312,30 @@ export function RoomMatrixPage() {
                   className="w-full text-left"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-heading text-lg text-vio-navy">
+                    <span className="text-sm font-medium text-vio-navy">
                       {room.code}
                     </span>
-                    <span className="text-[10px] uppercase tracking-wider text-vio-navy/45">
+                    <span className="text-xs font-medium text-vio-navy">
                       {room.type}
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-vio-navy/50">
+                  <p className="mt-2 text-xs text-vio-text-secondary">
                     {statusLabel[room.status]}
                   </p>
                   {room.guestName ? (
-                    <p className="mt-3 text-sm font-medium text-vio-navy/80">
+                    <p className="mt-3 text-sm font-medium text-vio-navy">
                       {room.guestName}
                     </p>
                   ) : (
-                    <p className="mt-3 text-xs text-vio-navy/35">
-                      {canAccept(room) ? 'Thả khách vào đây' : '—'}
+                    <p className="mt-3 text-xs text-vio-text-secondary">
+                      {canAccept(room) ? 'Drop guest here' : 'Unavailable'}
                     </p>
                   )}
                 </button>
               </RoomCell>
             </InfoTip>
           ))}
+        </div>
         </div>
       </div>
     </DndContext>

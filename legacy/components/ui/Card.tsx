@@ -4,18 +4,26 @@ import { cn } from '../../lib/cn'
 export type CardProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
   as?: 'div' | 'article' | 'section'
+  variant?: 'default' | 'gold' | 'elevated'
+  goldBorder?: boolean
 }
 
 export function Card({
   children,
   className,
   as: Tag = 'div',
+  variant = 'default',
+  goldBorder = false,
   ...props
 }: CardProps) {
+  const useGoldBorder = goldBorder || variant === 'gold'
+
   return (
     <Tag
       className={cn(
-        'rounded-2xl bg-vio-white p-8 shadow-md ring-1 ring-vio-navy/[0.06] transition-all duration-300 ease-[var(--ease-vio)] hover:scale-[1.02]',
+        'rounded-xl bg-vio-white p-6 transition-all duration-200 ease-[var(--ease-vio)] hover:shadow-soft-lg',
+        variant === 'elevated' ? 'shadow-soft-2xl' : 'shadow-soft',
+        useGoldBorder ? 'border-t-2 border-vio-gold' : 'border-t-2 border-transparent',
         className,
       )}
       {...props}

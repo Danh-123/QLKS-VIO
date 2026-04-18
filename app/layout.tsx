@@ -1,17 +1,11 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import {
+  cormorantGaramond,
+  cormorantSc,
+  inter,
+} from './fonts'
 import './globals.css'
 import '../legacy/index.css'
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
 
 export const metadata: Metadata = {
   title: 'QLKS VIO',
@@ -26,7 +20,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${cormorantGaramond.variable} ${cormorantSc.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         {children}

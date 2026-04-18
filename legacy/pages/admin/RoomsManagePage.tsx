@@ -1,25 +1,23 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   initialInventoryRooms,
   matrixRoomTypes,
   type InventoryRoom,
 } from '../../admin/mockData'
 import { Button } from '../../components/ui/Button'
+import { AdminPageHero } from '../../components/admin/AdminPageHero'
 import { Input } from '../../components/ui/Input'
+import { LuxuryPagination, LuxuryTable, type LuxuryColumn } from '../../components/ui/LuxuryTable'
 import { Modal } from '../../components/ui/Modal'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeaderCell,
-  TableRow,
-} from '../../components/ui/Table'
+import { useFakeApiData } from '../../lib/useFakeApiData'
+
+const PAGE_SIZE = 6
 
 export function RoomsManagePage() {
   const [rows, setRows] = useState<InventoryRoom[]>(initialInventoryRooms)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<InventoryRoom | null>(null)
+  const [page, setPage] = useState(1)
   const [form, setForm] = useState({
     code: '',
     floor: '1',
@@ -27,19 +25,66 @@ export function RoomsManagePage() {
     beds: '2',
   })
 
+  const { loading, data: roomRows } = useFakeApiData(rows, 700)
+
+  const totalPages = Math.max(1, Math.ceil(roomRows.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pageStart = (safePage - 1) * PAGE_SIZE
+  const pageRows = roomRows.slice(pageStart, pageStart + PAGE_SIZE)
+
+  const columns: LuxuryColumn<InventoryRoom>[] = useMemo(
+    () => [
+      { header: 'Code', accessorKey: 'code', className: 'font-medium' },
+      { header: 'Floor', accessorKey: 'floor' },
+      { header: 'Type', accessorKey: 'type' },
+      { header: 'Beds', accessorKey: 'beds' },
+      {
+        header: 'Status',
+        accessorKey: 'active',
+        render: (row) => (row.active ? 'Active' : 'Inactive'),
+      },
+      {
+        header: 'Actions',
+        accessorKey: 'actions',
+        align: 'right',
+        render: (row) => (
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              className="px-3 py-1.5 text-xs"
+              onClick={() => openEdit(row)}
+            >
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="px-3 py-1.5 text-xs text-vio-error"
+              onClick={() => remove(row.id)}
+            >
+              Delete
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  )
+
   const openNew = () => {
     setEditing(null)
     setForm({ code: '', floor: '1', type: 'Deluxe', beds: '2' })
     setOpen(true)
   }
 
-  const openEdit = (r: InventoryRoom) => {
-    setEditing(r)
+  const openEdit = (room: InventoryRoom) => {
+    setEditing(room)
     setForm({
-      code: r.code,
-      floor: String(r.floor),
-      type: r.type,
-      beds: String(r.beds),
+      code: room.code,
+      floor: String(room.floor),
+      type: room.type,
+      beds: String(room.beds),
     })
     setOpen(true)
   }
@@ -48,16 +93,16 @@ export function RoomsManagePage() {
     if (!form.code.trim()) return
     if (editing) {
       setRows((list) =>
-        list.map((x) =>
-          x.id === editing.id
+        list.map((item) =>
+          item.id === editing.id
             ? {
-                ...x,
+                ...item,
                 code: form.code,
                 floor: parseInt(form.floor, 10) || 1,
                 type: form.type,
                 beds: parseInt(form.beds, 10) || 1,
               }
-            : x,
+            : item,
         ),
       )
     } else {
@@ -77,131 +122,98 @@ export function RoomsManagePage() {
   }
 
   const remove = (id: string) => {
-    if (confirm('Xóa phòng này?')) setRows((l) => l.filter((x) => x.id !== id))
+    if (confirm('Delete this room?')) {
+      setRows((list) => list.filter((item) => item.id !== id))
+    }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-8">
-        <div>
-          <h1 className="font-heading text-3xl font-medium tracking-wide text-vio-navy md:text-4xl">
-            Quản lý phòng
-          </h1>
-          <p className="mt-2 text-sm text-vio-navy/50">
-            CRUD tối giản — dữ liệu phiên làm việc (demo).
-          </p>
-        </div>
+    <div className="space-y-8">
+      <AdminPageHero
+        eyebrow="Room Operations"
+        title="Rooms"
+        description="Manage inventory, categories, and floor configuration with one elegant workflow."
+        imageUrl="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1800&q=80"
+      />
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div />
         <Button type="button" onClick={openNew}>
-          Thêm phòng
+          Add Room
         </Button>
       </div>
 
-      <div className="mt-24">
-        <Table>
-        <TableHead>
-          <TableRow>
-            <TableHeaderCell>Mã</TableHeaderCell>
-            <TableHeaderCell>Tầng</TableHeaderCell>
-            <TableHeaderCell>Hạng</TableHeaderCell>
-            <TableHeaderCell>Giường</TableHeaderCell>
-            <TableHeaderCell>Hoạt động</TableHeaderCell>
-            <TableHeaderCell className="text-right">Thao tác</TableHeaderCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="font-medium">{r.code}</TableCell>
-              <TableCell>{r.floor}</TableCell>
-              <TableCell>{r.type}</TableCell>
-              <TableCell>{r.beds}</TableCell>
-              <TableCell>{r.active ? 'Có' : 'Không'}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="px-3 py-1.5 text-xs"
-                  onClick={() => openEdit(r)}
-                >
-                  Sửa
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="px-3 py-1.5 text-xs text-rose-700/80"
-                  onClick={() => remove(r.id)}
-                >
-                  Xóa
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-        </Table>
-      </div>
+      <LuxuryTable
+        columns={columns}
+        data={pageRows}
+        loading={loading}
+        rowKey={(row) => row.id}
+        emptyMessage="No rooms available."
+      />
+      <LuxuryPagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={editing ? 'Sửa phòng' : 'Thêm phòng'}
+        title={editing ? 'Edit room' : 'Add room'}
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Hủy
+              Cancel
             </Button>
-            <Button onClick={save}>Lưu</Button>
+            <Button onClick={save}>Save</Button>
           </>
         }
       >
         <div className="flex flex-col gap-6">
           <Input
             id="rm-code"
-            label="Mã phòng"
+            label="Room code"
             value={form.code}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, code: e.target.value }))
+            onChange={(event) =>
+              setForm((current) => ({ ...current, code: event.target.value }))
             }
           />
           <Input
             id="rm-floor"
-            label="Tầng"
+            label="Floor"
             type="number"
             min={1}
             value={form.floor}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, floor: e.target.value }))
+            onChange={(event) =>
+              setForm((current) => ({ ...current, floor: event.target.value }))
             }
           />
           <div>
             <label
               htmlFor="rm-type"
-              className="mb-2 block text-xs uppercase tracking-[0.2em] text-vio-navy/45"
+              className="mb-2 block text-xs uppercase tracking-[0.2em] text-vio-text-secondary"
             >
-              Hạng
+              Room type
             </label>
             <select
               id="rm-type"
               value={form.type}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, type: e.target.value }))
+              onChange={(event) =>
+                setForm((current) => ({ ...current, type: event.target.value }))
               }
-              className="w-full rounded-xl border-0 bg-vio-white px-4 py-3 text-base text-vio-navy shadow-soft-sm ring-1 ring-vio-navy/10"
+              className="w-full rounded-xl border border-vio-linen bg-vio-white px-4 py-3 text-base text-vio-text-primary"
             >
-              {matrixRoomTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {matrixRoomTypes.map((roomType) => (
+                <option key={roomType} value={roomType}>
+                  {roomType}
                 </option>
               ))}
             </select>
           </div>
           <Input
             id="rm-beds"
-            label="Số giường"
+            label="Beds"
             type="number"
             min={1}
             value={form.beds}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, beds: e.target.value }))
+            onChange={(event) =>
+              setForm((current) => ({ ...current, beds: event.target.value }))
             }
           />
         </div>
