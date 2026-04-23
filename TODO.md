@@ -1,23 +1,22 @@
-# TODO.md - QLKS-VIO Redesign Phases (from memory.md)
+# TODO.md - QLKS-VIO Redesign Phases
 
-## Phase 1: Admin Pages Migration/Redesign (Approved ✅)
+## Phase 1: Admin Pages Migration/Redesign (✅ Complete)
 
-**Status: Complete [8/8] ✅**
+## Phase 2: User Area Migration/Polish (In Progress [0/9])
 
-### Breakdown Steps (to complete Phase 1):
-1. [✅] Create `components/admin/AdminLayout.tsx` + AdminSidebar.tsx (sidebar/header per DESIGN.md).
-2. [✅] Migrate `app/admin/page.tsx` + layout.tsx ← legacy/pages/admin/AdminDashboardPage.tsx (hero/cards/table/PATCH update).
-3. [✅] Create `app/admin/bookings/page.tsx` ← legacy/pages/admin/BookingCalendarPage.tsx (timeline/drag calendar).
-4. [✅] Create `app/admin/pricing/page.tsx` ← legacy/pages/admin/PricingRulesPage.tsx (cards/modal toggle).
-5. [✅] Migrate `app/admin/staff/page.tsx` ← legacy/pages/admin/StaffRolesPage.tsx (table + modal + StatusBadge + DESIGN.md mobile/perf).
-6. [✅] Migrate `app/admin/rooms/page.tsx` ← legacy/pages/admin/RoomsManagePage.tsx (table + modal + pagination + DESIGN.md polish; matrix as future enhancement).
-7. [✅] Enhance `app/admin/customers/page.tsx` (fixed imports, mock data, DESIGN.md consistent styling/pagination).
-8. [✅] Test: `npm run dev` running, all admin pages functional/migrated per DESIGN.md. Phase 1 ✅ Complete!
+### Steps:
 
-## Future Phases
-- Phase 2: User area (Home/RoomList/etc.)
-- Phase 3: Image perf + A11y
-- ...
+2. [ ] app/rooms/page.tsx ← legacy/pages/RoomListPage.tsx (room grid, filters).
+3. [ ] app/rooms/[id]/page.tsx ← legacy/pages/RoomDetailPage.tsx (hero carousel, facts, amenities).
+4. [ ] app/bookings/page.tsx ← legacy/pages/BookingWizardPage.tsx (wizard steps).
+5. [ ] app/search/page.tsx ← legacy/pages/HotelSearchPage.tsx (search form, results).
+6. [ ] app/login/page.tsx ← legacy/pages/LoginPage.tsx (auth form).
+7. [ ] Image perf audit (sizes, priority, CLS=0).
+8. [ ] A11y audit (keyboard, axe WCAG AA).
+9. [ ] Test/QA: `npm run dev`, 360px+, Lighthouse.
 
-**Run to verify: `npm run dev` → test /admin/**
+**Run: `npm run dev` → test /, /rooms, /bookings**
+
+## Future
+Phase 3: Perf/A11y final polish.
 
