@@ -6,16 +6,42 @@ export type BookingStatus =
   | 'cancelled'
   | 'no-show'
 
-export type Booking = {
+export type StoredBooking = {
   id: string
+  createdAt: string
+  customerId?: string
+  customerName?: string
   roomId: string
   roomName: string
-  customerId: string
-  customerName: string
   checkIn: string
   checkOut: string
   guests: number
-  totalVnd: number
   status: BookingStatus
-  createdAt: string
+  totalVnd: number
+  preferencesNote?: string
 }
+
+export type Booking = StoredBooking
+
+export type BookingWizardState = {
+  checkIn: string
+  checkOut: string
+  /** @deprecated use adults+children; kept for URL sync */
+  guests: string
+  adults: string
+  children: string
+  roomId: string
+  floorPref: 'high' | 'low' | 'any'
+  smoking: boolean
+  allergy: string
+  occasion: string
+  fullName: string
+  email: string
+  phone: string
+  cardName: string
+  cardNumber: string
+  cardExpiry: string
+  cardCvc: string
+}
+
+export const BOOKING_STORAGE_KEY = 'vio_bookings_v1'

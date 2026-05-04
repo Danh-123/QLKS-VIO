@@ -7,15 +7,20 @@ export function LoginPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="relative min-h-dvh overflow-hidden bg-vio-cream"
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="relative min-h-dvh bg-white"
     >
-      <div className="relative z-10 flex min-h-dvh">
-        <section className="flex w-full items-center justify-center px-6 py-10 md:w-1/2 md:px-10">
-          <div className="w-full max-w-[440px] rounded-2xl bg-vio-white/80 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-0">
+      <div className="relative flex min-h-dvh">
+        <motion.section
+          className="flex w-full items-center justify-center px-4 py-12 md:w-1/2 md:px-12 lg:px-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+        >
+          <div className="w-full max-w-[420px]">
             <LoginForm />
           </div>
-        </section>
+        </motion.section>
         <LoginHeroImage />
       </div>
     </motion.div>

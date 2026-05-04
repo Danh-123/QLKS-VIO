@@ -1,29 +1,29 @@
-import type { Booking } from '../types/booking'
-import type { Room } from '../types/room'
-import { nightsBetween, todayIso } from './utils'
+import type { Booking, BookingStatus } from '../types/booking'
 
-const activeStatuses = new Set(['pending', 'confirmed', 'checked-in'])
-
-function toMillis(iso: string) {
-  return new Date(`${iso}T12:00:00`).getTime()
+type PricedRoom = {
+  basePriceVnd: number
 }
+
+const activeStatuses: BookingStatus[] = ['pending', 'confirmed', 'checked-in']
 
 export function isValidDateRange(checkIn: string, checkOut: string) {
-  if (!checkIn || !checkOut) return false
-  const ci = toMillis(checkIn)
-  const co = toMillis(checkOut)
-  const today = toMillis(todayIso())
-  if (Number.isNaN(ci) || Number.isNaN(co) || Number.isNaN(today)) return false
-  return ci >= today && co > ci
+  const start = new Date(checkIn)
+  const end = new Date(checkOut)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return false
+  }
+
+  return end.getTime() > start.getTime()
 }
 
-export function rangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
-  const aS = toMillis(aStart)
-  const aE = toMillis(aEnd)
-  const bS = toMillis(bStart)
-  const bE = toMillis(bEnd)
-  if ([aS, aE, bS, bE].some((v) => Number.isNaN(v))) return false
-  return aS < bE && bS < aE
+function rangesOverlap(
+  leftStart: string,
+  leftEnd: string,
+  rightStart: string,
+  rightEnd: string,
+) {
+  return new Date(leftStart) < new Date(rightEnd) && new Date(leftEnd) > new Date(rightStart)
 }
 
 export function isRoomAvailable(
@@ -32,19 +32,26 @@ export function isRoomAvailable(
   checkOut: string,
   bookings: Booking[],
 ) {
-  if (!isValidDateRange(checkIn, checkOut)) return false
-  return !bookings.some(
-    (booking) =>
-      booking.roomId === roomId &&
-      activeStatuses.has(booking.status) &&
-      rangesOverlap(checkIn, checkOut, booking.checkIn, booking.checkOut),
-  )
+  return bookings.every((booking) => {
+    if (booking.roomId !== roomId) return true
+    if (!activeStatuses.includes(booking.status)) return true
+    return !rangesOverlap(checkIn, checkOut, booking.checkIn, booking.checkOut)
+  })
 }
 
-export function calculatePricing(room: Room, checkIn: string, checkOut: string) {
-  const nights = nightsBetween(checkIn, checkOut)
-  const subtotal = room.pricePerNight * nights
+export function calculatePricing(room: PricedRoom, checkIn: string, checkOut: string) {
+  const oneDay = 24 * 60 * 60 * 1000
+  const start = new Date(checkIn)
+  const end = new Date(checkOut)
+  const nights = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / oneDay))
+  const subtotal = room.basePriceVnd * nights
   const serviceFee = Math.round(subtotal * 0.08)
   const total = subtotal + serviceFee
-  return { nights, subtotal, serviceFee, total }
+
+  return {
+    nights,
+    subtotal,
+    serviceFee,
+    total,
+  }
 }

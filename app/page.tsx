@@ -1,7 +1,12 @@
-'use client'
+"use client"
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import dynamic from 'next/dynamic'
 
-const heroImage = 'https://images.unsplash.com/photo
+const LegacyApp = dynamic(() => import('../legacy/App'), {
+	ssr: false,
+	loading: () => <div className="min-h-screen bg-white" />,
+})
+
+export default function HomePage() {
+	return <LegacyApp />
+}
