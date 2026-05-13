@@ -1,0 +1,47 @@
+[
+  {
+    "id": "usr-admin-1",
+    "name": "Aurelia Admin",
+    "email": "admin@aurelia.com",
+    "role": "admin",
+    "phone": "+84912345001",
+    "tier": "Platinum",
+    "createdAt": "2024-01-01T08:00:00Z"
+  },
+  {
+    "id": "usr-user-1",
+    "name": "Aurelia Guest",
+    "email": "user@aurelia.com",
+    "role": "user",
+    "phone": "+84912345002",
+    "tier": "Gold",
+    "createdAt": "2024-03-15T10:30:00Z"
+  },
+  {
+    "id": "usr-user-2",
+    "name": "Mai Hương",
+    "email": "mai@example.com",
+    "role": "user",
+    "phone": "+84912345003",
+    "tier": "Silver",
+    "createdAt": "2024-02-20T14:45:00Z"
+  },
+  {
+    "id": "usr-user-3",
+    "name": "Demo User",
+    "email": "demo@vio.com",
+    "role": "user",
+    "phone": "+84912345004",
+    "tier": "Silver",
+    "createdAt": "2024-04-10T09:00:00Z"
+  },
+  {
+    "id": "usr-user-4",
+    "name": "John Smith",
+    "email": "john.smith@example.com",
+    "role": "user",
+    "phone": "+1-555-0101",
+    "tier": "Gold",
+    "createdAt": "2024-05-05T11:20:00Z"
+  }
+]

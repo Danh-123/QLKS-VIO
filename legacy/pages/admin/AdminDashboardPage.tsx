@@ -5,6 +5,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Card } from '../../components/ui/Card'
 import { useAdminDashboard } from '../../hooks/useAdminDashboard'
 import { cn } from '../../lib/cn'
+import { AdminTopbar } from '../../components/admin/AdminTopbar'
 
 const PAGE_SIZE = 6
 
@@ -56,14 +57,10 @@ function StatTile({
   hint: string
 }) {
   return (
-    <Card goldBorder className="p-6">
-      <p className="text-xs uppercase tracking-[0.1em] text-vio-text-secondary">
-        {label}
-      </p>
-      <p className="mt-3 font-heading text-5xl font-normal leading-none text-vio-navy">
-        {value}
-      </p>
-      <p className="mt-3 text-xs text-vio-text-secondary">{hint}</p>
+    <Card goldBorder className="p-8 rounded-3xl shadow-soft-sm">
+      <p className="text-xs uppercase tracking-[0.12em] text-vio-text-secondary">{label}</p>
+      <p className="mt-4 font-heading text-6xl font-normal leading-tight text-vio-navy">{value}</p>
+      <p className="mt-4 text-sm text-vio-text-secondary">{hint}</p>
     </Card>
   )
 }
@@ -123,7 +120,8 @@ export function AdminDashboardPage() {
   ]
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
+      <AdminTopbar title="Hotel Operations" />
       <section className="relative overflow-hidden rounded-2xl">
         <img
           src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80"

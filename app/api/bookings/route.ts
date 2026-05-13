@@ -5,7 +5,8 @@ import type { Booking } from '../../../types/booking'
 
 export async function GET() {
   await sleep(500)
-  return NextResponse.json(listBookings())
+  const bookings = await listBookings()
+  return NextResponse.json(bookings)
 }
 
 type CreateBookingRequest = {
@@ -27,12 +28,12 @@ export async function POST(request: Request) {
     )
   }
 
-  const room = findRoom(body.roomId)
+  const room = await findRoom(body.roomId)
   if (!room) {
     return NextResponse.json({ message: 'Room not found' }, { status: 404 })
   }
 
-  const existing = listBookings()
+  const existing = await listBookings()
   if (!isRoomAvailable(body.roomId, body.checkIn, body.checkOut, existing)) {
     return NextResponse.json(
       { message: 'Room is not available for selected dates' },
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
   }
 
-  addBooking(next)
+  await addBooking(next)
   await sleep(350)
 
   return NextResponse.json(next, { status: 201 })

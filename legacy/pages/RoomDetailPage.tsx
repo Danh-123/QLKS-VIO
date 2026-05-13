@@ -19,6 +19,7 @@ import {
 } from '../data/roomDetails'
 import { cn } from '../lib/cn'
 import { useAppData } from '../state/AppDataContext'
+import { hasAuthToken } from '../hooks/useAuth'
 
 const reveal = 0.72
 const amenityEase = [0.25, 0.1, 0.25, 1] as const
@@ -215,6 +216,13 @@ export function RoomDetailPage() {
     if (checkIn) q.set('checkIn', checkIn)
     if (checkOut) q.set('checkOut', checkOut)
     q.set('guests', guests)
+    const target = `/book?${q.toString()}`
+
+    if (!hasAuthToken()) {
+      navigate(`/login?redirect=${encodeURIComponent(target)}&reason=auth`)
+      return
+    }
+
     setBookingDraft({
       roomId: room.id,
       checkIn,
@@ -223,7 +231,7 @@ export function RoomDetailPage() {
       adults: guests,
       children: '0',
     })
-    navigate(`/book?${q.toString()}`)
+    navigate(target)
   }
 
   const updateCheckIn = (value: string) => {

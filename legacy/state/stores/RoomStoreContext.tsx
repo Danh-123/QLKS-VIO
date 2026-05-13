@@ -89,9 +89,21 @@ const DEFAULT_DRAFT: BookingDraft = {
   children: '0',
 }
 
+const DRAFT_STORAGE_KEY = 'vio_booking_draft_v1'
+
 export function RoomStoreProvider({ children }: { children: ReactNode }) {
   const [searchFilters, setSearchFilters] = useState<SearchFilters>(DEFAULT_SEARCH)
-  const [bookingDraft, setBookingDraftState] = useState<BookingDraft>(DEFAULT_DRAFT)
+  const [bookingDraft, setBookingDraftState] = useState<BookingDraft>(() => {
+    if (typeof window === 'undefined') return DEFAULT_DRAFT
+    try {
+      const raw = sessionStorage.getItem(DRAFT_STORAGE_KEY)
+      if (!raw) return DEFAULT_DRAFT
+      const parsed = JSON.parse(raw) as Partial<BookingDraft>
+      return { ...DEFAULT_DRAFT, ...parsed }
+    } catch {
+      return DEFAULT_DRAFT
+    }
+  })
 
   const todayIso = useMemo(() => toIsoDate(new Date()), [])
 
@@ -100,7 +112,15 @@ export function RoomStoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setBookingDraft = useCallback((patch: Partial<BookingDraft>) => {
-    setBookingDraftState((prev) => ({ ...prev, ...patch }))
+    setBookingDraftState((prev) => {
+      const next = { ...prev, ...patch }
+      try {
+        sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(next))
+      } catch {
+        // ignore
+      }
+      return next
+    })
   }, [])
 
   const isValidDateRange = useCallback(

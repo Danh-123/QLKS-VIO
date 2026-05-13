@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Hoang Minh",
+    "email": "hoang@example.com",
+    "phone": "+84901234567",
+    "message": "Tôi muốn biết thêm về Suite Hướng biển và dịch vụ spa.",
+    "createdAt": "2025-05-12T14:30:00Z",
+    "status": "new"
+  },
+  {
+    "id": 2,
+    "name": "Linda Chen",
+    "email": "linda.chen@company.com",
+    "phone": "+65-6234-5678",
+    "message": "Interested in group booking for corporate retreat, 20-25 people.",
+    "createdAt": "2025-05-11T10:15:00Z",
+    "status": "read"
+  },
+  {
+    "id": 3,
+    "name": "Pham Ngoc",
+    "email": "pham.ngoc@email.com",
+    "phone": "+84938765432",
+    "message": "Cần hỗ trợ thay đổi ngày đặt phòng.",
+    "createdAt": "2025-05-10T16:45:00Z",
+    "status": "replied"
+  },
+  {
+    "id": 4,
+    "name": "Maria Garcia",
+    "email": "maria.garcia@travel.com",
+    "phone": "+34-91-555-0101",
+    "message": "Looking for wedding venue and planning services.",
+    "createdAt": "2025-05-09T12:00:00Z",
+    "status": "new"
+  },
+  {
+    "id": 5,
+    "name": "Tran Duc",
+    "email": "tran.duc@business.vn",
+    "phone": "+84912345678",
+    "message": "Yêu cầu báo giá đặc biệt cho dự án hội nghị quốc tế.",
+    "createdAt": "2025-05-08T09:30:00Z",
+    "status": "read"
+  }
+]

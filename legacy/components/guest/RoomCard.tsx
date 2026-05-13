@@ -43,7 +43,7 @@ export function RoomCard({
 
         {(room.badge || featured) && (
           <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
-            <span className="rounded-full bg-[#1E3A5F] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white shadow-sm">
+            <span className="rounded-full bg-[#0f172a] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white shadow-sm">
               {room.badge || (featured ? 'Ưu đãi hôm nay' : 'Best Seller')}
             </span>
           </div>
@@ -59,10 +59,10 @@ export function RoomCard({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-vio-navy/70">
-          <div className="flex items-center gap-2"><span>👤</span><span>{room.guests || '2'} khách</span></div>
-          <div className="flex items-center gap-2"><span>🛏</span><span>{room.beds || '1'} giường</span></div>
-          <div className="flex items-center gap-2"><span>📐</span><span>{room.size || '—'}</span></div>
-          <div className="flex items-center gap-2"><span>🌊</span><span>{room.view || '—'}</span></div>
+          <div className="flex items-center gap-2"><span>{room.guests || '2'} khách</span></div>
+          <div className="flex items-center gap-2"><span>{room.beds || '1'} giường</span></div>
+          <div className="flex items-center gap-2"><span>{room.size || '—'}</span></div>
+          <div className="flex items-center gap-2"><span>{room.view || '—'}</span></div>
         </div>
 
         <div className="mt-auto flex flex-col gap-4 pt-4 sm:flex-row sm:items-end sm:justify-between">
@@ -76,7 +76,7 @@ export function RoomCard({
               type="button"
               onClick={onDetail}
               disabled={unavailable}
-              className="w-full rounded-xl bg-[#1E3A5F] px-4 py-3 text-white shadow-sm transition hover:bg-[#162B46] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              className="w-full rounded-xl bg-[#0f172a] px-4 py-3 text-white shadow-sm transition hover:bg-[#0f172a]/90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 300 }}

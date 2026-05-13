@@ -55,15 +55,15 @@ export function AdminSidebar() {
   }
 
   return (
-    <aside className="sticky top-0 relative flex h-dvh w-[72px] shrink-0 flex-col overflow-hidden bg-vio-navy md:w-[280px]">
-      <NavLink
-        to="/admin"
-        className="px-6 py-8 text-center font-heading text-2xl font-normal text-vio-cream md:text-left"
-      >
-        Grand Aurelia
-      </NavLink>
+    <aside className="sticky top-0 relative flex h-dvh w-16 shrink-0 flex-col overflow-hidden bg-vio-navy text-vio-cream md:w-64">
+      <div className="flex h-16 items-center justify-center md:justify-start md:px-6">
+        <NavLink to="/admin" className="text-lg font-heading tracking-wide">
+          <span className="hidden md:inline">Grand Aurelia</span>
+          <span className="md:hidden">GA</span>
+        </NavLink>
+      </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-2 md:px-0" aria-label="Admin navigation">
+      <nav className="flex flex-1 flex-col gap-2 px-2 md:px-0 mt-4" aria-label="Admin navigation">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -71,19 +71,16 @@ export function AdminSidebar() {
             end={item.end}
             className={({ isActive }) =>
               cn(
-                'mx-2 flex items-center justify-center gap-3 px-0 py-3 text-sm font-medium text-[#E8E2D9] transition-all duration-200 md:mx-0 md:justify-start md:px-6',
-                'hover:bg-vio-gold/10',
+                'mx-2 flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-medium transition-all duration-200 md:mx-0 md:justify-start md:px-6',
                 isActive
-                  ? 'border-l-[3px] border-vio-gold bg-vio-gold/[0.08] text-vio-white'
-                  : 'border-l-[3px] border-transparent',
+                  ? 'bg-vio-gold/5 ring-1 ring-vio-gold/15 text-vio-white before:block before:w-1 before:rounded-full before:bg-vio-gold before:mr-3'
+                  : 'text-vio-cream hover:bg-vio-navy/60 hover:text-white',
               )
             }
           >
             {({ isActive }) => (
               <>
-                <span className={cn('text-vio-gold/60', isActive && 'text-vio-gold')}>
-                  {item.icon}
-                </span>
+                <span className={cn('text-vio-gold/60', isActive && 'text-vio-gold')}>{item.icon}</span>
                 <span className="hidden text-[14px] md:inline">{item.label}</span>
               </>
             )}
@@ -91,38 +88,16 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      <NavLink
-        to="/admin/staff"
-        className={({ isActive }) =>
-          cn(
-            'mx-2 mb-3 flex items-center justify-center gap-3 border-l-[3px] border-transparent px-0 py-3 text-[#E8E2D9] transition-all duration-200 hover:bg-vio-gold/10 md:mx-0 md:justify-start md:px-6',
-            isActive && 'border-vio-gold bg-vio-gold/[0.08] text-vio-white',
-          )
-        }
-      >
-        {({ isActive }) => (
-          <>
-            <span className={cn('text-vio-gold/60', isActive && 'text-vio-gold')}>
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
-                <path d="M12 8.5A2.5 2.5 0 1 0 12 3.5A2.5 2.5 0 0 0 12 8.5Z" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M20 13A2 2 0 1 0 20 9A2 2 0 0 0 20 13Z" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M4 13A2 2 0 1 0 4 9A2 2 0 0 0 4 13Z" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M12 20C15.3 20 18 18.2 18 16C18 13.8 15.3 12 12 12C8.7 12 6 13.8 6 16C6 18.2 8.7 20 12 20Z" stroke="currentColor" strokeWidth="1.6" />
-              </svg>
-            </span>
-            <span className="hidden text-[14px] md:inline">Settings</span>
-          </>
-        )}
-      </NavLink>
-
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="absolute bottom-8 left-3 right-3 rounded-lg border border-vio-gold bg-transparent px-4 py-2 text-sm font-medium text-vio-gold transition-colors duration-200 hover:bg-vio-gold/10 md:left-6 md:right-6"
-      >
-        <span className="hidden md:inline">Log out</span>
-        <span className="md:hidden">Exit</span>
-      </button>
+      <div className="mt-auto p-4 md:px-6">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full rounded-xl border border-vio-gold/30 bg-transparent px-3 py-2 text-sm font-medium text-vio-gold transition-all hover:bg-vio-gold/6"
+        >
+          <span className="hidden md:inline">Log out</span>
+          <span className="md:hidden">Exit</span>
+        </button>
+      </div>
     </aside>
   )
 }

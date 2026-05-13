@@ -9,7 +9,7 @@ export async function GET(_: Request, { params }: Params) {
   const { id } = await params
   await sleep(450)
 
-  const room = findRoom(id)
+  const room = await findRoom(id)
   if (!room) {
     return NextResponse.json({ message: 'Room not found' }, { status: 404 })
   }

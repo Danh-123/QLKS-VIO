@@ -3,5 +3,6 @@ import { listUsers, sleep } from '../../../lib/serverData'
 
 export async function GET() {
   await sleep(450)
-  return NextResponse.json(listUsers())
+  const users = await listUsers()
+  return NextResponse.json(users)
 }

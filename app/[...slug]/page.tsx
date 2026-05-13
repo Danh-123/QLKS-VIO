@@ -1,12 +1,6 @@
-"use client"
-
-import dynamic from 'next/dynamic'
-
-const LegacyApp = dynamic(() => import('../../legacy/App'), {
-  ssr: false,
-  loading: () => <div className="min-h-screen bg-white" />,
-})
+import LegacyAppClient from '../_legacy/LegacyAppClient'
 
 export default function CatchAllLegacyPage() {
-  return <LegacyApp />
+  return <LegacyAppClient />
 }
+

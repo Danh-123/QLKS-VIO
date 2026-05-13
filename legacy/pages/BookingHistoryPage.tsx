@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { statusLabels } from '../booking/bookingStorage'
 import type { BookingStatus, StoredBooking } from '../booking/types'
@@ -11,7 +11,7 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { formatVnd } from '../data/roomDetails'
 import { useFakeApiData } from '../lib/useFakeApiData'
 import { cn } from '../lib/cn'
-import { useAppData } from '../state/AppDataContext'
+import { AUTH_USER_KEY } from '../hooks/useAuth'
 
 function statusStyle(s: BookingStatus) {
   switch (s) {
@@ -80,16 +80,37 @@ function BookingRow({ b }: { b: StoredBooking }) {
 
 export function BookingHistoryPage() {
   const navigate = useNavigate()
-  const { bookings: list } = useAppData()
+  const [list, setList] = useState<StoredBooking[]>([])
 
-  const sorted = useMemo(
-    () =>
-      [...list].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      ),
-    [list],
-  )
+  useEffect(() => {
+    async function load() {
+      try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem(AUTH_USER_KEY) : null
+        const user = raw ? JSON.parse(raw) : null
+
+        if (!user || !user.id) {
+          setList([])
+          return
+        }
+
+        const res = await fetch('/api/bookings')
+        if (!res.ok) {
+          setList([])
+          return
+        }
+
+        const all: StoredBooking[] = await res.json()
+        const filtered = all.filter((b) => b.customerId === user.id)
+        setList(filtered)
+      } catch (err) {
+        setList([])
+      }
+    }
+
+    load()
+  }, [])
+
+  const sorted = useMemo(() => [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [list])
 
   const { loading, data: displayedBookings } = useFakeApiData(sorted, 900)
 

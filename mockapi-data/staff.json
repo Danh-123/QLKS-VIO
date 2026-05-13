@@ -1,0 +1,92 @@
+[
+  {
+    "id": "s-1",
+    "name": "Tran Thanh",
+    "email": "tranth@vio.com",
+    "role": "Manager",
+    "department": "Front Desk",
+    "status": "active",
+    "joinedDate": "2023-01-15"
+  },
+  {
+    "id": "s-2",
+    "name": "Nguyen Ha",
+    "email": "nguyenha@vio.com",
+    "role": "Front Desk",
+    "department": "Front Desk",
+    "status": "active",
+    "joinedDate": "2023-06-20"
+  },
+  {
+    "id": "s-3",
+    "name": "Pham Linh",
+    "email": "phamlinh@vio.com",
+    "role": "Housekeeping",
+    "department": "Housekeeping",
+    "status": "active",
+    "joinedDate": "2023-03-10"
+  },
+  {
+    "id": "s-4",
+    "name": "Le Duc",
+    "email": "leduc@vio.com",
+    "role": "Housekeeping",
+    "department": "Housekeeping",
+    "status": "on-leave",
+    "joinedDate": "2023-04-05"
+  },
+  {
+    "id": "s-5",
+    "name": "Hoang Chi",
+    "email": "hoangchi@vio.com",
+    "role": "Food & Beverage",
+    "department": "Restaurant",
+    "status": "active",
+    "joinedDate": "2023-02-14"
+  },
+  {
+    "id": "s-6",
+    "name": "Vu Minh",
+    "email": "vuminh@vio.com",
+    "role": "Food & Beverage",
+    "department": "Bar",
+    "status": "active",
+    "joinedDate": "2023-05-01"
+  },
+  {
+    "id": "s-7",
+    "name": "Dao An",
+    "email": "daoan@vio.com",
+    "role": "Maintenance",
+    "department": "Engineering",
+    "status": "active",
+    "joinedDate": "2022-11-20"
+  },
+  {
+    "id": "s-8",
+    "name": "Tran Khoa",
+    "email": "trankhoa@vio.com",
+    "role": "IT",
+    "department": "IT",
+    "status": "active",
+    "joinedDate": "2023-07-15"
+  },
+  {
+    "id": "s-9",
+    "name": "Hoang Lan",
+    "email": "hoanglan@vio.com",
+    "role": "Front Desk",
+    "department": "Front Desk",
+    "status": "inactive",
+    "joinedDate": "2023-08-01"
+  },
+  {
+    "id": "s-10",
+    "name": "Le Cuong",
+    "email": "lecuong@vio.com",
+    "role": "Manager",
+    "department": "Housekeeping",
+    "status": "active",
+    "joinedDate": "2023-01-01"
+  }
+]

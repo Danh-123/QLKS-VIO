@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AdminSidebar } from './AdminSidebar'
 
-export function AdminLayout() {
+export function AdminLayout({ children }: { children?: ReactNode }) {
   return (
     <div className="flex h-dvh overflow-hidden bg-vio-dashboard-bg text-vio-text-primary">
       <AdminSidebar />
@@ -13,7 +14,7 @@ export function AdminLayout() {
         </header>
         <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-8 md:px-8 md:py-8">
           <div className="mx-auto w-full max-w-dashboard">
-            <Outlet />
+            {children ?? <Outlet />}
           </div>
         </main>
       </div>

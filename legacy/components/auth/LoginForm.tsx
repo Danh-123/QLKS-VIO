@@ -6,10 +6,9 @@ import { cn } from '../../lib/cn'
 
 const LOGIN_REDIRECT_STORAGE_KEY = 'vio_login_redirect_path'
 
-function getSafeAdminRedirect(value: string | null) {
+function getSafeRedirect(value: string | null) {
   const redirect = (value || '').trim()
   if (!redirect.startsWith('/')) return null
-  if (!redirect.startsWith('/admin')) return null
   if (redirect.startsWith('//')) return null
   return redirect
 }
@@ -41,24 +40,24 @@ export function LoginForm() {
 
   const redirectAfterLogin = useMemo(() => {
     const params = new URLSearchParams(location.search)
-    const redirectFromQuery = getSafeAdminRedirect(params.get('redirect'))
+    const redirectFromQuery = getSafeRedirect(params.get('redirect'))
     if (redirectFromQuery) return redirectFromQuery
 
     if (typeof window !== 'undefined') {
-      const redirectFromStorage = getSafeAdminRedirect(
+      const redirectFromStorage = getSafeRedirect(
         sessionStorage.getItem(LOGIN_REDIRECT_STORAGE_KEY),
       )
       if (redirectFromStorage) return redirectFromStorage
     }
 
-    return '/admin'
+    return '/'
   }, [location.search])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     const params = new URLSearchParams(location.search)
-    const redirectFromQuery = getSafeAdminRedirect(params.get('redirect'))
+    const redirectFromQuery = getSafeRedirect(params.get('redirect'))
 
     if (redirectFromQuery) {
       sessionStorage.setItem(LOGIN_REDIRECT_STORAGE_KEY, redirectFromQuery)
@@ -130,6 +129,23 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="w-full" noValidate>
+      <Link
+        to="/"
+        className="mb-6 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-gray-600 transition-colors duration-200 hover:border-gray-300 hover:text-black"
+        aria-label="Quay về trang chủ"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-4 w-4">
+          <path
+            d="M15 18l-6-6 6-6"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span>Trang chủ</span>
+      </Link>
+
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -296,7 +312,7 @@ export function LoginForm() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        Demo: admin@aurelia.com / aurelia123
+        Demo: admin@aurelia.com / aurelia123 — user: demo@vio.com / demo1234
       </motion.p>
     </form>
   )

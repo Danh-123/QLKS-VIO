@@ -34,11 +34,16 @@ export function RoomListPage() {
 
   const { loading, data: displayedRooms } = useFakeApiData(visibleRooms, 850)
 
+  const extractPrice = (priceStr: string): number => {
+    const match = priceStr.match(/\d+(?:\.\d+)?/)
+    return match ? parseFloat(match[0].replace(/\./g, '')) : 0
+  }
+
   const sortedRooms = useMemo(() => {
     if (!displayedRooms) return []
     const copy = [...displayedRooms]
-    if (sort === 'low') return copy.sort((a, b) => (a.priceFromRaw || 0) - (b.priceFromRaw || 0))
-    if (sort === 'high') return copy.sort((a, b) => (b.priceFromRaw || 0) - (a.priceFromRaw || 0))
+    if (sort === 'low') return copy.sort((a, b) => extractPrice(a.priceFrom || '0') - extractPrice(b.priceFrom || '0'))
+    if (sort === 'high') return copy.sort((a, b) => extractPrice(b.priceFrom || '0') - extractPrice(a.priceFrom || '0'))
     return copy
   }, [displayedRooms, sort])
 
@@ -154,7 +159,7 @@ export function RoomListPage() {
           </motion.div>
 
           <div className="md:ml-auto">
-            <p className="text-sm font-medium text-vio-navy/75">⭐ 4.8/5 từ 120+ khách</p>
+            <p className="text-sm font-medium text-vio-navy/75">4.8/5 từ 120+ khách</p>
           </div>
         </motion.div>
 

@@ -293,10 +293,10 @@ function RoomCard({
             {room.description}
           </p>
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-vio-navy/65 sm:grid-cols-4">
-            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">👤 {meta.guests}</span>
-            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">🛏 {meta.size}</span>
-            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">📐 {meta.view}</span>
-            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">🌊 View</span>
+            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">{meta.guests}</span>
+            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">{meta.size}</span>
+            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">{meta.view}</span>
+            <span className="rounded-full bg-vio-cream px-3 py-2 text-center">Tầm nhìn</span>
           </div>
           <div className="mt-4 flex items-end justify-between gap-3">
             <div>
@@ -313,7 +313,7 @@ function RoomCard({
         <div className="mt-auto flex gap-3 pt-5">
           <motion.button
             type="button"
-            className="w-full sm:w-auto rounded-xl border border-vio-navy/10 bg-white px-8 py-4 text-sm font-medium tracking-[0.02em] text-vio-navy transition-all duration-300 ease-[var(--ease-vio)] hover:bg-vio-navy/[0.04]"
+            className="w-full sm:w-auto rounded-xl border border-gray-300 bg-white px-8 py-4 text-sm font-medium tracking-[0.02em] text-gray-700 transition-all duration-300 ease-[var(--ease-vio)] hover:border-gray-400 hover:text-black"
             onClick={onExplore}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
@@ -323,7 +323,7 @@ function RoomCard({
           </motion.button>
           <motion.button
             type="button"
-            className="w-full sm:w-auto rounded-xl bg-[#1E3A5F] px-8 py-4 text-sm font-medium tracking-[0.02em] text-vio-white shadow-soft-sm transition-all duration-300 ease-[var(--ease-vio)] hover:brightness-105"
+            className="w-full sm:w-auto rounded-xl bg-[#0f172a] px-8 py-4 text-sm font-medium tracking-[0.02em] text-white shadow-soft-sm transition-all duration-300 ease-[var(--ease-vio)] hover:bg-[#0f172a]/90"
             onClick={onBook}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
@@ -343,7 +343,7 @@ export function HomePage() {
   return (
     <div className="bg-vio-cream text-vio-navy">
       <motion.section
-        className="relative flex min-h-[100dvh] min-h-screen w-full flex-col justify-end overflow-hidden"
+        className="relative flex min-h-screen w-full flex-col justify-end overflow-hidden md:min-h-[100vh] lg:min-h-[100vh]"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -351,18 +351,18 @@ export function HomePage() {
         <motion.img
           src={heroImage}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover object-center"
           loading="eager"
-          initial={{ opacity: 0, y: 20, scale: 1.06 }}
-          animate={{ opacity: 1, y: 0, scale: 1.02 }}
+          initial={{ opacity: 0, y: 20, scale: 1.04 }}
+          animate={{ opacity: 1, y: 0, scale: 1.01 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         />
         <div
           className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,26,38,0.28)_0%,rgba(15,26,38,0.6)_48%,rgba(15,26,38,0.86)_100%)]"
           aria-hidden
         />
-        <motion.div
-          className="vio-container relative z-10 flex w-full flex-col justify-end pb-20 pt-28 md:pb-28"
+          <motion.div
+            className="vio-container relative z-10 flex w-full flex-col justify-end pb-20 pt-0 md:pb-24"
           variants={heroContainer}
           initial="hidden"
           animate="show"
@@ -446,7 +446,7 @@ export function HomePage() {
                   Social proof
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-base font-medium text-vio-navy md:text-lg">
-                  <span>⭐ 4.8/5 từ 120+ khách</span>
+                  <span>4.8/5 từ 120+ khách</span>
                   <span className="hidden h-1 w-1 rounded-full bg-vio-navy/20 md:inline-block" />
                   <span>Top retreat tại Vịnh Hạ Long</span>
                 </div>
@@ -589,6 +589,7 @@ export function HomePage() {
       </motion.section>
 
       <motion.section
+        id="experiences"
         className="relative min-h-[min(72vh,820px)] w-full overflow-hidden"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -667,6 +668,7 @@ export function HomePage() {
       </section>
 
       <motion.section
+        id="offers"
         className="bg-vio-cream"
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -733,15 +735,15 @@ export function HomePage() {
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Button
                 type="button"
-                variant="ghost"
-                className="min-h-12 px-6 bg-white text-black hover:bg-[#f2f2f2]"
+                className="min-h-12 px-6 bg-white text-black hover:bg-gray-100"
                 onClick={() => navigate('/search')}
               >
                 Đặt phòng ngay
               </Button>
               <Button
                 type="button"
-                className="min-h-12 px-6 bg-transparent text-black ring-1 ring-inset ring-vio-white/22 hover:bg-vio-white/12"
+                variant="secondary"
+                className="min-h-12 px-6"
                 onClick={() => navigate('/contact')}
               >
                 Liên hệ tư vấn
@@ -783,7 +785,7 @@ export function HomePage() {
                   <div className="mt-8 flex flex-wrap gap-3">
                     <Button
                       type="button"
-                      className="min-h-12 bg-vio-navy px-6 text-vio-white hover:bg-vio-navy/90"
+                      className="min-h-12 px-6"
                       onClick={() => navigate('/rooms')}
                     >
                       Khám phá phòng
@@ -791,7 +793,7 @@ export function HomePage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      className="min-h-12 px-6 bg-white text-vio-navy hover:bg-vio-navy/[0.04]"
+                      className="min-h-12 px-6"
                       onClick={() => navigate('/contact')}
                     >
                       Liên hệ tư vấn

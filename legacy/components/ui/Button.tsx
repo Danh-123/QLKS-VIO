@@ -10,9 +10,9 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-[#1E3A5F] text-vio-white shadow-soft-sm hover:brightness-105 focus-visible:ring-2 focus-visible:ring-vio-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-vio-cream',
+    'bg-[#0f172a] text-white hover:bg-[#0f172a]/90 shadow-soft-sm focus-visible:ring-2 focus-visible:ring-vio-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-vio-cream',
   secondary:
-    'bg-transparent text-vio-navy ring-1 ring-vio-navy hover:bg-vio-navy/[0.04] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-vio-navy/20 focus-visible:ring-offset-2 focus-visible:ring-offset-vio-cream',
+    'border border-gray-300 text-gray-700 hover:border-gray-400 hover:text-black transition-colors focus-visible:ring-2 focus-visible:ring-vio-navy/20 focus-visible:ring-offset-2 focus-visible:ring-offset-vio-cream',
   ghost:
     'bg-transparent text-vio-navy hover:bg-vio-navy/[0.06] hover:brightness-105 focus-visible:ring-2 focus-visible:ring-vio-navy/15 focus-visible:ring-offset-2 focus-visible:ring-offset-vio-cream',
 }

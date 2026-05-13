@@ -5,6 +5,7 @@ import {
   useMemo,
   type ReactNode,
 } from 'react'
+import { AUTH_USER_KEY } from '../hooks/useAuth'
 import type { BookingStatus, StoredBooking } from '../booking/types'
 import { BookingStoreProvider, useBookingStore } from './stores/BookingStoreContext'
 import { RoomStoreProvider, useRoomStore } from './stores/RoomStoreContext'
@@ -74,8 +75,7 @@ function AppDataComposer({ children }: { children: ReactNode }) {
       if (!isRoomAvailable(input.roomId, input.checkIn, input.checkOut)) {
         throw new Error('Phong da duoc dat trong khoang thoi gian nay.')
       }
-
-      const next: StoredBooking = {
+      const localNext: StoredBooking = {
         id: `vio-${Date.now()}`,
         createdAt: new Date().toISOString(),
         customerName: input.customer?.name?.trim() || undefined,
@@ -89,13 +89,66 @@ function AppDataComposer({ children }: { children: ReactNode }) {
         preferencesNote: input.preferencesNote,
       }
 
-      addBookingRecord(next)
+      // Optimistically save locally for instant UI feedback
+      addBookingRecord(localNext)
+
+      // Try to persist booking to server API so history and customerId are recorded
+      if (typeof window !== 'undefined') {
+        ;(async () => {
+          try {
+            const rawUser = localStorage.getItem(AUTH_USER_KEY)
+            let userId: string | undefined
+            let userName: string | undefined
+            if (rawUser) {
+              try {
+                const u = JSON.parse(rawUser) as { id?: string; name?: string }
+                userId = u.id
+                userName = u.name
+              } catch {
+                // ignore
+              }
+            }
+
+            const body = {
+              roomId: input.roomId,
+              customerId: userId ?? '',
+              customerName: (input.customer?.name ?? userName ?? '').trim(),
+              checkIn: input.checkIn,
+              checkOut: input.checkOut,
+              guests: input.guests,
+            }
+
+            const res = await fetch('/api/bookings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            })
+
+            if (!res.ok) throw new Error('Server booking failed')
+            const created = await res.json()
+            // add server record (may duplicate local optimistic entry)
+            addBookingRecord(created)
+          } catch {
+            // ignore - keep local record
+          }
+        })()
+      }
+
+      // clear booking draft after booking flow
+      setBookingDraft({
+        roomId: '',
+        checkIn: '',
+        checkOut: '',
+        guests: '2',
+        adults: '2',
+        children: '0',
+      })
 
       if (input.customer?.email) {
         recordCustomerStay(input.customer.name ?? '', input.customer.email)
       }
 
-      return next
+      return localNext
     },
     [addBookingRecord, isRoomAvailable, isValidDateRange, recordCustomerStay],
   )

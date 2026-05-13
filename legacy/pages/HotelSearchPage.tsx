@@ -300,7 +300,7 @@ export function HotelSearchPage() {
                       setError(null)
                       navigate('/rooms')
                     }}
-                    className="w-full md:w-auto bg-blue-900 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300"
+                    className="w-full md:w-auto bg-[#0f172a] text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:bg-[#0f172a]/90"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
@@ -318,7 +318,7 @@ export function HotelSearchPage() {
                   <motion.button
                     type="button"
                     onClick={() => navigate('/rooms')}
-                    className="w-full md:w-auto px-6 py-3 rounded-xl font-medium border border-vio-navy/20 text-vio-navy bg-transparent transition-all duration-300 hover:bg-vio-sand/20"
+                    className="w-full md:w-auto px-6 py-3 rounded-xl font-medium border border-gray-300 text-gray-700 bg-transparent transition-all duration-300 hover:border-gray-400 hover:text-black"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}

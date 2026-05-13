@@ -48,6 +48,10 @@ export function useAuth() {
       localStorage.setItem(AUTH_TOKEN_KEY, payload.token)
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(payload.user))
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('vio-auth-changed'))
+      }
+
       return payload
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to sign in. Please try again.'
@@ -75,4 +79,5 @@ export function clearAuthSession() {
   if (typeof window === 'undefined') return
   localStorage.removeItem(AUTH_TOKEN_KEY)
   localStorage.removeItem(AUTH_USER_KEY)
+  window.dispatchEvent(new Event('vio-auth-changed'))
 }

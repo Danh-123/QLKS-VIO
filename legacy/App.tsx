@@ -17,6 +17,7 @@ import { BookingWizardPage } from './pages/BookingWizardPage'
 import { RoomDetailPage } from './pages/RoomDetailPage'
 import { RoomListPage } from './pages/RoomListPage'
 import { LoginPage } from './pages/LoginPage'
+import { ContactPage } from './pages/ContactPage'
 import { AdminRouteGuard, LoginRouteGuard } from './components/auth/RouteGuards'
 import { AdminLayout } from './components/admin/AdminLayout'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
@@ -138,6 +139,7 @@ function AnimatedRoutes() {
               <Route path="/rooms/:id" element={<RoomDetailPage />} />
               <Route path="/book" element={<BookingWizardRoute />} />
               <Route path="/bookings" element={<BookingHistoryPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

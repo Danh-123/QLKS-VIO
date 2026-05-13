@@ -6,7 +6,6 @@ function getSafeRedirectFromSearch(search: string) {
   const redirect = params.get('redirect') || ''
 
   if (!redirect.startsWith('/')) return null
-  if (!redirect.startsWith('/admin')) return null
   if (redirect.startsWith('//')) return null
 
   return redirect
@@ -34,7 +33,7 @@ export function LoginRouteGuard() {
 
   if (hasAuthToken() && !hasForceLogin(location.search)) {
     const redirect = getSafeRedirectFromSearch(location.search)
-    return <Navigate to={redirect || '/admin'} replace />
+    return <Navigate to={redirect || '/'} replace />
   }
 
   return <Outlet />

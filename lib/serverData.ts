@@ -1,4 +1,3 @@
-import { rooms as legacyRooms } from '../legacy/data/rooms'
 import type { Booking, BookingStatus, StoredBooking } from '../types/booking'
 
 type RoomStatus = 'available' | 'occupied' | 'dirty' | 'maintenance' | 'reserved'
@@ -20,112 +19,29 @@ type UserRecord = {
   role: 'admin' | 'user'
 }
 
-const roomCatalog: ApiRoom[] = legacyRooms.map((room) => {
-  const pricingById: Record<string, number> = {
-    'ocean-suite': 4_800_000,
-    'garden-villa': 8_200_000,
-    'sky-penthouse': 12_500_000,
-    'garden-deluxe': 3_200_000,
-    harbour: 2_900_000,
-    studio: 2_400_000,
+const _RAW_MOCKAPI_BASE = process.env.NEXT_PUBLIC_MOCKAPI_BASE_URL || 'https://api.mockapi.com'
+const MOCKAPI_BASE_URL = _RAW_MOCKAPI_BASE.replace(/\/+$/u, '')
+const MOCKAPI_API_KEY = process.env.MOCKAPI_API_KEY?.trim()
+
+function apiUrl(path: string) {
+  return `${MOCKAPI_BASE_URL}/${path.replace(/^\/+/, '')}`
+}
+
+function mockApiHeaders(extraHeaders?: HeadersInit) {
+  const headers = new Headers(extraHeaders)
+
+  if (MOCKAPI_API_KEY) {
+    headers.set('x-api-key', MOCKAPI_API_KEY)
+    headers.set('authorization', `Bearer ${MOCKAPI_API_KEY}`)
   }
 
-  const statusById: Record<string, RoomStatus> = {
-    'ocean-suite': 'occupied',
-    'garden-villa': 'occupied',
-    'sky-penthouse': 'reserved',
-    'garden-deluxe': 'available',
-    harbour: 'maintenance',
-    studio: 'available',
-  }
+  return headers
+}
 
-  return {
-    id: room.id,
-    name: room.name,
-    description: room.description,
-    image: room.image,
-    priceFrom: room.priceFrom,
-    basePriceVnd: pricingById[room.id] ?? 3_500_000,
-    status: statusById[room.id] ?? 'available',
-  }
-})
+let cachedRooms: ApiRoom[] | null = null
 
-const demoBookings: StoredBooking[] = [
-  {
-    id: 'vio-demo-1',
-    createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
-    roomId: 'ocean-suite',
-    roomName: 'Suite Hướng biển',
-    checkIn: '2025-04-02',
-    checkOut: '2025-04-05',
-    guests: 2,
-    status: 'checked-out',
-    totalVnd: 14_400_000,
-  },
-  {
-    id: 'vio-demo-2',
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    roomId: 'garden-villa',
-    roomName: 'Villa Vườn',
-    checkIn: '2025-05-10',
-    checkOut: '2025-05-14',
-    guests: 4,
-    status: 'confirmed',
-    totalVnd: 32_800_000,
-  },
-  {
-    id: 'vio-demo-3',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    roomId: 'studio',
-    roomName: 'Studio Signature',
-    checkIn: '2025-03-28',
-    checkOut: '2025-03-29',
-    guests: 1,
-    status: 'pending',
-    totalVnd: 2_400_000,
-  },
-  {
-    id: 'vio-demo-4',
-    createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-    roomId: 'harbour',
-    roomName: 'Phòng Cảng',
-    checkIn: '2025-02-01',
-    checkOut: '2025-02-03',
-    guests: 2,
-    status: 'cancelled',
-    totalVnd: 5_800_000,
-  },
-  {
-    id: 'vio-demo-5',
-    createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
-    roomId: 'sky-penthouse',
-    roomName: 'Penthouse Trời',
-    checkIn: '2025-04-18',
-    checkOut: '2025-04-20',
-    guests: 2,
-    status: 'checked-in',
-    totalVnd: 25_000_000,
-  },
-  {
-    id: 'vio-demo-6',
-    createdAt: new Date(Date.now() - 86400000 * 60).toISOString(),
-    roomId: 'garden-deluxe',
-    roomName: 'Deluxe Vườn',
-    checkIn: '2025-01-15',
-    checkOut: '2025-01-16',
-    guests: 2,
-    status: 'no-show',
-    totalVnd: 3_200_000,
-  },
-]
 
-const bookings: StoredBooking[] = [...demoBookings]
-
-const demoUsers: UserRecord[] = [
-  { id: 'usr-admin-1', name: 'Aurelia Admin', email: 'admin@aurelia.com', role: 'admin' },
-  { id: 'usr-user-1', name: 'Aurelia Guest', email: 'user@aurelia.com', role: 'user' },
-  { id: 'usr-user-2', name: 'Mai Hương', email: 'mai@example.com', role: 'user' },
-]
+let bookings: StoredBooking[] = []
 
 export function sleep(milliseconds: number) {
   return new Promise<void>((resolve) => {
@@ -133,34 +49,107 @@ export function sleep(milliseconds: number) {
   })
 }
 
-export function listRooms() {
-  return roomCatalog.map((room) => ({ ...room }))
-}
-
-export function findRoom(id: string) {
-  return roomCatalog.find((room) => room.id === id) ?? null
-}
-
-export function listBookings() {
-  return bookings.map((booking) => ({ ...booking }))
-}
-
-export function addBooking(booking: Booking) {
-  bookings.unshift({ ...booking })
-}
-
-export function updateBookingStatusById(id: string, status: BookingStatus) {
-  const index = bookings.findIndex((booking) => booking.id === id)
-  if (index === -1) return null
-
-  bookings[index] = {
-    ...bookings[index],
-    status,
+export async function listRooms() {
+  try {
+    if (cachedRooms) return cachedRooms
+    
+    const response = await fetch(apiUrl('rooms'))
+    if (!response.ok) throw new Error('Failed to fetch rooms')
+    
+    const data: ApiRoom[] = await response.json()
+    cachedRooms = data
+    return data
+  } catch (error) {
+    console.error('Error fetching rooms from MockAPI:', error)
+    return []
   }
-
-  return { ...bookings[index] }
 }
 
-export function listUsers() {
-  return demoUsers.map((user) => ({ ...user }))
+export async function findRoom(id: string) {
+  try {
+    const response = await fetch(apiUrl(`rooms/${id}`))
+    if (!response.ok) return null
+    return (await response.json()) as ApiRoom
+  } catch (error) {
+    console.error('Error fetching room:', error)
+    return null
+  }
 }
+
+export async function listBookings() {
+  try {
+    const response = await fetch(apiUrl('bookings'))
+    if (!response.ok) throw new Error('Failed to fetch bookings')
+    
+    const data: StoredBooking[] = await response.json()
+    bookings = data
+    return data
+  } catch (error) {
+    console.error('Error fetching bookings from MockAPI:', error)
+    return bookings
+  }
+}
+
+export async function addBooking(booking: Booking) {
+  try {
+    const response = await fetch(apiUrl('bookings'), {
+      method: 'POST',
+      headers: mockApiHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(booking),
+    })
+    if (!response.ok) throw new Error('Failed to create booking')
+    
+    const created = (await response.json()) as StoredBooking
+    bookings.unshift(created)
+    return created
+  } catch (error) {
+    console.error('Error creating booking:', error)
+    return null
+  }
+}
+
+export async function updateBookingStatusById(id: string, status: BookingStatus) {
+  try {
+    const response = await fetch(apiUrl(`bookings/${id}`), {
+      method: 'PUT',
+      headers: mockApiHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status }),
+    })
+    if (!response.ok) return null
+
+    const updated = (await response.json()) as StoredBooking
+    const index = bookings.findIndex((booking) => booking.id === id)
+    if (index !== -1) {
+      bookings[index] = updated
+    }
+    return { ...updated }
+  } catch (error) {
+    console.error('Error updating booking status:', error)
+    return null
+  }
+}
+
+export async function listUsers() {
+  try {
+    const response = await fetch(apiUrl('users'))
+    if (!response.ok) throw new Error('Failed to fetch users')
+    
+    const data: UserRecord[] = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error fetching users from MockAPI:', error)
+    return []
+  }
+}
+
+export async function findUser(id: string) {
+  try {
+    const response = await fetch(apiUrl(`users/${id}`))
+    if (!response.ok) return null
+    return (await response.json()) as UserRecord
+  } catch (error) {
+    console.error('Error fetching user:', error)
+    return null
+  }
+}
+
