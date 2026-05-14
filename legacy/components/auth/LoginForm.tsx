@@ -296,7 +296,7 @@ export function LoginForm() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        Demo: admin@aurelia.com / aurelia123
+        Demo quản trị: admin@viohotel.com / vio123456
       </motion.p>
     </form>
   )

@@ -1,17 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BookingStatus } from '../../types/booking'
 import {
+  computeAdminOverviewMetrics,
   fetchAdminBookings,
-  fetchAdminOverviewMetrics,
+  fetchAdminRooms,
   patchBookingStatus,
   type AdminBooking,
   type AdminOverviewMetrics,
+  type AdminRoomRow,
 } from '../lib/adminApi'
+
+function countRoomStatuses(rooms: AdminRoomRow[]) {
+  const counts: Record<string, number> = {}
+  for (const room of rooms) {
+    const key = room.status ?? 'unknown'
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  return counts
+}
 
 type AdminDashboardState = {
   loading: boolean
   error: string | null
   bookings: AdminBooking[]
+  rooms: AdminRoomRow[]
   metrics: AdminOverviewMetrics
 }
 
@@ -27,6 +39,7 @@ export function useAdminDashboard() {
     loading: true,
     error: null,
     bookings: [],
+    rooms: [],
     metrics: initialMetrics,
   })
 
@@ -34,9 +47,9 @@ export function useAdminDashboard() {
     setState((current) => ({ ...current, loading: true, error: null }))
 
     try {
-      const bookings = await fetchAdminBookings()
-      const metrics = await fetchAdminOverviewMetrics(bookings)
-      setState({ loading: false, error: null, bookings, metrics })
+      const [bookings, rooms] = await Promise.all([fetchAdminBookings(), fetchAdminRooms()])
+      const metrics = computeAdminOverviewMetrics(bookings, rooms)
+      setState({ loading: false, error: null, bookings, rooms, metrics })
     } catch (err) {
       setState((current) => ({
         ...current,
@@ -65,24 +78,22 @@ export function useAdminDashboard() {
           : booking,
       )
 
-      const activeBookings = nextBookings.filter((booking) =>
-        ['pending', 'confirmed', 'checked-in'].includes(booking.status),
-      ).length
+      const metrics = computeAdminOverviewMetrics(nextBookings, current.rooms)
 
       return {
         ...current,
         bookings: nextBookings,
-        metrics: {
-          ...current.metrics,
-          activeBookings,
-        },
+        metrics,
       }
     })
   }, [])
 
+  const roomStatusCounts = useMemo(() => countRoomStatuses(state.rooms), [state.rooms])
+
   return {
     ...state,
     bookings: sortedBookings,
+    roomStatusCounts,
     reload: load,
     updateBookingStatus,
   }

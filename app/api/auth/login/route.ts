@@ -9,14 +9,28 @@ type LoginRequest = {
 const demoAccounts = [
   {
     id: 'usr-admin-1',
-    name: 'Aurelia Admin',
+    name: 'Quản trị VIO',
+    email: 'admin@viohotel.com',
+    password: 'vio123456',
+    role: 'admin',
+  },
+  {
+    id: 'usr-admin-1',
+    name: 'Quản trị VIO',
     email: 'admin@aurelia.com',
     password: 'aurelia123',
     role: 'admin',
   },
   {
     id: 'usr-user-1',
-    name: 'Aurelia Guest',
+    name: 'Khách VIO',
+    email: 'guest@viohotel.com',
+    password: 'vio123456',
+    role: 'user',
+  },
+  {
+    id: 'usr-user-1',
+    name: 'Khách VIO',
     email: 'user@aurelia.com',
     password: 'aurelia123',
     role: 'user',

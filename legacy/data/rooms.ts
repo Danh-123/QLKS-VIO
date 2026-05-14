@@ -5,6 +5,13 @@ export type RoomListing = {
   priceFrom: string
   image: string
   featured?: boolean
+  badge?: string
+  guests?: string | number
+  beds?: string | number
+  size?: string
+  view?: string
+  /** Numeric floor price for sorting (VND) */
+  priceFromRaw?: number
 }
 
 export const rooms: RoomListing[] = [

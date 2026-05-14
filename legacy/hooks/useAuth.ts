@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { getAuthLoginUrl } from '../../lib/envPublic'
 
 type LoginPayload = {
   email: string
@@ -31,7 +32,7 @@ export function useAuth() {
     setError(null)
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(getAuthLoginUrl(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

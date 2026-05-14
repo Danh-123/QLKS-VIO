@@ -1,10 +1,13 @@
 import type { BookingStatus } from '../../types/booking'
+import { getAdminApiBaseUrl } from '../../lib/envPublic'
 
 export type AdminBooking = {
   id: string
   guest: string
   room: string
   checkIn: string
+  checkOut: string
+  guests: number
   totalVnd: number
   status: BookingStatus
 }
@@ -14,12 +17,6 @@ export type AdminOverviewMetrics = {
   occupancyRate: number
   activeBookings: number
   averageDailyRateVnd: number
-}
-
-function getApiBaseUrl() {
-  const raw = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL?.trim()
-  if (!raw) return ''
-  return raw.replace(/\/+$/, '')
 }
 
 function getAuthHeaders() {
@@ -32,7 +29,7 @@ function getAuthHeaders() {
 }
 
 function buildUrl(path: string) {
-  const base = getApiBaseUrl()
+  const base = getAdminApiBaseUrl()
   if (!base) return `/api${path}`
   return `${base}${path}`
 }
@@ -57,9 +54,11 @@ function parseStatus(value: unknown): BookingStatus {
 function normalizeBooking(raw: Record<string, unknown>): AdminBooking {
   return {
     id: String(raw.id ?? raw.bookingId ?? ''),
-    guest: String(raw.customerName ?? raw.guest ?? raw.customer ?? 'Walk-in guest'),
-    room: String(raw.roomName ?? raw.room ?? raw.roomCode ?? 'Unknown room'),
+    guest: String(raw.customerName ?? raw.guest ?? raw.customer ?? 'Khách walk-in'),
+    room: String(raw.roomName ?? raw.room ?? raw.roomCode ?? 'Chưa gán phòng'),
     checkIn: String(raw.checkIn ?? raw.check_in ?? ''),
+    checkOut: String(raw.checkOut ?? raw.check_out ?? ''),
+    guests: Math.max(1, Number(raw.guests ?? raw.guestCount ?? 1)),
     totalVnd: Number(raw.totalVnd ?? raw.total ?? raw.totalAmount ?? 0),
     status: parseStatus(raw.status),
   }
@@ -81,7 +80,13 @@ export async function fetchAdminBookings() {
   return payload.map(normalizeBooking)
 }
 
-export async function fetchAdminOverviewMetrics(bookings: AdminBooking[]): Promise<AdminOverviewMetrics> {
+export type AdminRoomRow = {
+  id: string
+  name: string
+  status?: string
+}
+
+export async function fetchAdminRooms(): Promise<AdminRoomRow[]> {
   const response = await fetch(buildUrl('/rooms'), {
     headers: {
       'Content-Type': 'application/json',
@@ -93,8 +98,18 @@ export async function fetchAdminOverviewMetrics(bookings: AdminBooking[]): Promi
     throw new Error('Failed to load room metrics from API')
   }
 
-  const rooms = (await response.json()) as Array<{ status?: string }>
+  const payload = (await response.json()) as Array<Record<string, unknown>>
+  return payload.map((raw) => ({
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? raw.roomName ?? 'Phòng'),
+    status: typeof raw.status === 'string' ? raw.status : undefined,
+  }))
+}
 
+export function computeAdminOverviewMetrics(
+  bookings: AdminBooking[],
+  rooms: AdminRoomRow[],
+): AdminOverviewMetrics {
   const totalRevenueVnd = bookings.reduce((sum, booking) => sum + booking.totalVnd, 0)
   const activeBookings = bookings.filter((booking) =>
     ['pending', 'confirmed', 'checked-in'].includes(booking.status),
@@ -103,9 +118,7 @@ export async function fetchAdminOverviewMetrics(bookings: AdminBooking[]): Promi
   const occupiedRooms = rooms.filter((room) => room.status === 'occupied').length
   const occupancyRate = rooms.length > 0 ? Math.round((occupiedRooms / rooms.length) * 1000) / 10 : 0
 
-  const averageDailyRateVnd = activeBookings > 0
-    ? Math.round(totalRevenueVnd / activeBookings)
-    : 0
+  const averageDailyRateVnd = activeBookings > 0 ? Math.round(totalRevenueVnd / activeBookings) : 0
 
   return {
     totalRevenueVnd,
@@ -113,6 +126,11 @@ export async function fetchAdminOverviewMetrics(bookings: AdminBooking[]): Promi
     activeBookings,
     averageDailyRateVnd,
   }
+}
+
+export async function fetchAdminOverviewMetrics(bookings: AdminBooking[]): Promise<AdminOverviewMetrics> {
+  const rooms = await fetchAdminRooms()
+  return computeAdminOverviewMetrics(bookings, rooms)
 }
 
 export async function patchBookingStatus(bookingId: string, status: BookingStatus) {

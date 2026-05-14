@@ -28,9 +28,7 @@ export function LoginHeroImage() {
           <p className="max-w-md font-light text-3xl leading-tight text-white">
             True luxury is found in the details.
           </p>
-          <p className="mt-6 text-xs uppercase tracking-[0.15em] text-white/70">
-            Grand Aurelia Hotel
-          </p>
+          <p className="mt-6 text-xs uppercase tracking-[0.15em] text-white/70">VIO Hotel</p>
         </div>
       </aside>
     </>
