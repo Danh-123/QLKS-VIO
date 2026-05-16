@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { BookingWizardState } from '../booking/types'
 import { BookingSummaryPanel } from '../components/booking/BookingSummaryPanel'
 import { DateRangeCalendar } from '../components/booking/DateRangeCalendar'
@@ -51,6 +51,7 @@ function emptyState(): BookingWizardState {
 
 function initialFormFromParams(
   searchParams: URLSearchParams,
+  roomIdParam: string | undefined,
   draft: Pick<
     BookingWizardState,
     'roomId' | 'checkIn' | 'checkOut' | 'guests' | 'adults' | 'children'
@@ -62,7 +63,7 @@ function initialFormFromParams(
   )
   return {
     ...emptyState(),
-    roomId: searchParams.get('room') ?? draft.roomId,
+    roomId: roomIdParam || searchParams.get('room') || draft.roomId,
     checkIn: searchParams.get('checkIn') ?? draft.checkIn,
     checkOut: searchParams.get('checkOut') ?? draft.checkOut,
     guests: String(g),
@@ -79,6 +80,7 @@ function emailOk(s: string) {
 
 export function BookingWizardPage() {
   const [searchParams] = useSearchParams()
+  const { roomId } = useParams<{ roomId?: string }>()
   const navigate = useNavigate()
   const {
     rooms,
@@ -93,7 +95,7 @@ export function BookingWizardPage() {
   } = useAppData()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<BookingWizardState>(() =>
-    initialFormFromParams(searchParams, bookingDraft),
+    initialFormFromParams(searchParams, roomId, bookingDraft),
   )
   const [bookingRef, setBookingRef] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -302,7 +304,11 @@ export function BookingWizardPage() {
 
   useEffect(() => {
     if (form.roomId && unavailableRoomIds.has(form.roomId)) {
-      setForm((prev) => ({ ...prev, roomId: '' }))
+      const clearTimer = window.setTimeout(() => {
+        setForm((prev) => ({ ...prev, roomId: '' }))
+      }, 0)
+
+      return () => window.clearTimeout(clearTimer)
     }
   }, [form.roomId, unavailableRoomIds])
 
@@ -800,7 +806,7 @@ export function BookingWizardPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => navigate('/bookings')}
+                      onClick={() => navigate('/bookings/history')}
                     >
                       Lịch sử đặt phòng
                     </Button>

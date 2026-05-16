@@ -167,7 +167,17 @@ export function BookingHistoryPage() {
         >
           Xem phòng
         </Button>
-        <Button type="button" variant="ghost" onClick={() => navigate('/')}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate('/')
+            }
+          }}
+        >
           Trang chủ
         </Button>
       </div>

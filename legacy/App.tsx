@@ -6,18 +6,19 @@ import {
   Route,
   Routes,
   useLocation,
+  useParams,
   useSearchParams,
 } from 'react-router-dom'
 import { ToastProvider } from './components/ui/Toast'
 import { GuestLayout } from './components/guest/GuestLayout'
 import { HomePage } from './pages/HomePage'
 import { HotelSearchPage } from './pages/HotelSearchPage'
-import { BookingHistoryPage } from './pages/BookingHistoryPage'
+import { BookingHistoryBridgePage } from './pages/BookingHistoryBridgePage'
 import { BookingWizardPage } from './pages/BookingWizardPage'
 import { RoomDetailPage } from './pages/RoomDetailPage'
 import { RoomListPage } from './pages/RoomListPage'
 import { LoginPage } from './pages/LoginPage'
-import { AdminRouteGuard, LoginRouteGuard } from './components/auth/RouteGuards'
+import { AdminRouteGuard, AuthRouteGuard, LoginRouteGuard } from './components/auth/RouteGuards'
 import { AdminLayout } from './components/admin/AdminLayout'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { BookingCalendarPage } from './pages/admin/BookingCalendarPage'
@@ -26,6 +27,7 @@ import { PricingRulesPage } from './pages/admin/PricingRulesPage'
 import { RoomMatrixPage } from './pages/admin/RoomMatrixPage'
 import { RoomsManagePage } from './pages/admin/RoomsManagePage'
 import { StaffRolesPage } from './pages/admin/StaffRolesPage'
+import { BookingsPage } from './pages/admin/BookingsPage'
 import { AppDataProvider } from './state/AppDataContext'
 
 function HotelSearchRoute() {
@@ -35,7 +37,8 @@ function HotelSearchRoute() {
 
 function BookingWizardRoute() {
   const [searchParams] = useSearchParams()
-  return <BookingWizardPage key={searchParams.toString()} />
+  const { roomId } = useParams()
+  return <BookingWizardPage key={`${roomId || ''}-${searchParams.toString()}`} />
 }
 
 const pageEase = [0.25, 0.1, 0.25, 1] as const
@@ -56,7 +59,9 @@ function RouteTransitionLoader() {
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    setVisible(true)
+    const showTimer = window.setTimeout(() => {
+      setVisible(true)
+    }, 0)
 
     if (timerRef.current) {
       window.clearTimeout(timerRef.current)
@@ -68,6 +73,7 @@ function RouteTransitionLoader() {
     }, 320)
 
     return () => {
+      window.clearTimeout(showTimer)
       if (timerRef.current) {
         window.clearTimeout(timerRef.current)
       }
@@ -119,13 +125,16 @@ function AnimatedRoutes() {
           <Routes location={location}>
             <Route element={<LoginRouteGuard />}>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin/login" element={<LoginPage />} />
             </Route>
             <Route element={<AdminRouteGuard />}>
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboardPage />} />
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboardPage />} />
                 <Route path="matrix" element={<RoomMatrixPage />} />
                 <Route path="calendar" element={<BookingCalendarPage />} />
                 <Route path="rooms" element={<RoomsManagePage />} />
+                <Route path="bookings" element={<BookingsPage />} />
                 <Route path="pricing" element={<PricingRulesPage />} />
                 <Route path="customers" element={<CustomersPage />} />
                 <Route path="staff" element={<StaffRolesPage />} />
@@ -136,8 +145,12 @@ function AnimatedRoutes() {
               <Route path="/search" element={<HotelSearchRoute />} />
               <Route path="/rooms" element={<RoomListPage />} />
               <Route path="/rooms/:id" element={<RoomDetailPage />} />
-              <Route path="/book" element={<BookingWizardRoute />} />
-              <Route path="/bookings" element={<BookingHistoryPage />} />
+              <Route element={<AuthRouteGuard />}>
+                <Route path="/book" element={<BookingWizardRoute />} />
+                <Route path="/booking/:roomId" element={<BookingWizardRoute />} />
+                <Route path="/bookings/history" element={<BookingHistoryBridgePage />} />
+                <Route path="/bookings" element={<BookingHistoryBridgePage />} />
+              </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

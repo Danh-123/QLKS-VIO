@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { roomApi } from '../../../lib/api'
 import {
   initialInventoryRooms,
   matrixRoomTypes,
@@ -32,8 +33,9 @@ export function RoomsManagePage() {
   const pageStart = (safePage - 1) * PAGE_SIZE
   const pageRows = roomRows.slice(pageStart, pageStart + PAGE_SIZE)
 
-  const columns: LuxuryColumn<InventoryRoom>[] = useMemo(
-    () => [
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const columns = useMemo(
+    (): LuxuryColumn<InventoryRoom>[] => [
       { header: 'Code', accessorKey: 'code', className: 'font-medium' },
       { header: 'Floor', accessorKey: 'floor' },
       { header: 'Type', accessorKey: 'type' },
@@ -41,13 +43,13 @@ export function RoomsManagePage() {
       {
         header: 'Status',
         accessorKey: 'active',
-        render: (row) => (row.active ? 'Active' : 'Inactive'),
+        render: (row: InventoryRoom) => (row.active ? 'Active' : 'Inactive'),
       },
       {
         header: 'Actions',
         accessorKey: 'actions',
         align: 'right',
-        render: (row) => (
+        render: (row: InventoryRoom) => (
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -90,40 +92,97 @@ export function RoomsManagePage() {
   }
 
   const save = () => {
-    if (!form.code.trim()) return
-    if (editing) {
-      setRows((list) =>
-        list.map((item) =>
-          item.id === editing.id
-            ? {
-                ...item,
-                code: form.code,
-                floor: parseInt(form.floor, 10) || 1,
-                type: form.type,
-                beds: parseInt(form.beds, 10) || 1,
-              }
-            : item,
-        ),
-      )
-    } else {
-      setRows((list) => [
-        ...list,
-        {
-          id: `inv-${Date.now()}`,
-          code: form.code,
-          floor: parseInt(form.floor, 10) || 1,
-          type: form.type,
-          beds: parseInt(form.beds, 10) || 1,
-          active: true,
-        },
-      ])
-    }
-    setOpen(false)
+    ;(async () => {
+      if (!form.code.trim()) return
+
+      if (editing) {
+        // update local data
+        setRows((list) =>
+          list.map((item) =>
+            item.id === editing.id
+              ? {
+                  ...item,
+                  code: form.code,
+                  floor: parseInt(form.floor, 10) || 1,
+                  type: form.type,
+                  beds: parseInt(form.beds, 10) || 1,
+                }
+              : item,
+          ),
+        )
+
+        // if this row corresponds to an API room (id not starting with inv-), try to update API as well
+        if (editing.id && !String(editing.id).startsWith('inv-')) {
+          try {
+            await roomApi.update(editing.id, {
+              name: form.code,
+              type: form.type,
+              capacity: parseInt(form.beds, 10) || 1,
+            })
+          } catch {
+            // ignore API errors for legacy inventory rows
+          }
+        }
+      } else {
+        // create in API so it appears for user listing
+        try {
+          const created = await roomApi.create({
+            name: form.code,
+            type: form.type,
+            price: 0,
+            basePriceVnd: 0,
+            image: '',
+            description: '',
+            capacity: parseInt(form.beds, 10) || 1,
+            status: 'available',
+          })
+
+          // append created room to local inventory view
+          setRows((list) => [
+            ...list,
+            {
+              id: created.id ?? `inv-${Date.now()}`,
+              code: form.code,
+              floor: parseInt(form.floor, 10) || 1,
+              type: form.type,
+              beds: parseInt(form.beds, 10) || 1,
+              active: true,
+            },
+          ])
+        } catch {
+          // fallback to local-only add
+          setRows((list) => [
+            ...list,
+            {
+              id: `inv-${Date.now()}`,
+              code: form.code,
+              floor: parseInt(form.floor, 10) || 1,
+              type: form.type,
+              beds: parseInt(form.beds, 10) || 1,
+              active: true,
+            },
+          ])
+        }
+      }
+
+      setOpen(false)
+    })()
   }
 
   const remove = (id: string) => {
     if (confirm('Delete this room?')) {
-      setRows((list) => list.filter((item) => item.id !== id))
+      ;(async () => {
+        // delete from API when possible
+        if (id && !String(id).startsWith('inv-')) {
+          try {
+            await roomApi.delete(id)
+          } catch {
+            // ignore
+          }
+        }
+
+        setRows((list) => list.filter((item) => item.id !== id))
+      })()
     }
   }
 

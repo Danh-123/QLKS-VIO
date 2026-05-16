@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '../../lib/cn'
+import { getStoredUser } from '../../../hooks/useAuth'
 
 const items = [
   {
@@ -50,7 +52,7 @@ const items = [
     ),
   },
   {
-    to: '/bookings',
+    to: '/bookings/history',
     label: 'Lịch sử',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -67,6 +69,8 @@ const items = [
 
 export function GuestMobileNav() {
   const { pathname } = useLocation()
+  const isAdmin = useMemo(() => getStoredUser()?.role === 'admin', [pathname])
+
   const isItemActive = (to: string) =>
     to === '/' ? pathname === '/' : pathname.startsWith(to)
 
@@ -75,33 +79,66 @@ export function GuestMobileNav() {
       aria-label="Điều hướng di động"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-vio-navy/[0.06] bg-vio-white/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_32px_-16px_rgba(30,58,95,0.12)] backdrop-blur-md md:hidden"
     >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-around gap-1 px-2">
+      <ul
+        className={cn(
+          'mx-auto grid max-w-lg gap-1 px-3',
+          isAdmin ? 'grid-cols-5' : 'grid-cols-4',
+        )}
+      >
         {items.map(({ to, label, icon }) => {
           const isActive = isItemActive(to)
 
           return (
-            <li key={to} className="flex min-w-0 flex-1">
+            <li key={to} className="min-w-0">
+              <NavLink
+                to={to}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium tracking-wide transition-all duration-300 ease-[var(--ease-vio)]',
+                  isActive ? 'text-vio-navy' : 'text-vio-navy/45 hover:text-vio-navy/75',
+                )}
+              >
+                <span
+                  className={cn(
+                    'transition-colors duration-300',
+                    isActive ? 'text-vio-gold' : 'text-vio-navy/35',
+                  )}
+                >
+                  {icon}
+                </span>
+                <span className="truncate">{label}</span>
+              </NavLink>
+            </li>
+          )
+        })}
+        {isAdmin ? (
+          <li className="min-w-0">
             <NavLink
-              to={to}
-              aria-current={isActive ? 'page' : undefined}
+              to="/admin/dashboard"
+              aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
               className={cn(
-                'flex w-full flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium tracking-wide transition-all duration-300 ease-[var(--ease-vio)]',
-                isActive ? 'text-vio-navy' : 'text-vio-navy/45 hover:text-vio-navy/75',
+                'flex h-full w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-medium tracking-wide transition-all duration-300 ease-[var(--ease-vio)]',
+                pathname.startsWith('/admin') ? 'text-vio-navy' : 'text-vio-navy/45 hover:text-vio-navy/75',
               )}
             >
               <span
                 className={cn(
                   'transition-colors duration-300',
-                  isActive ? 'text-vio-gold' : 'text-vio-navy/35',
+                  pathname.startsWith('/admin') ? 'text-vio-gold' : 'text-vio-navy/35',
                 )}
               >
-                {icon}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M4 4H10V10H4V4ZM14 4H20V10H14V4ZM4 14H10V20H4V14ZM14 14H20V20H14V14Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                </svg>
               </span>
-              <span className="truncate">{label}</span>
+              <span className="truncate">Quản trị</span>
             </NavLink>
-            </li>
-          )
-        })}
+          </li>
+        ) : null}
       </ul>
     </nav>
   )

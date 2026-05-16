@@ -1,9 +1,9 @@
-import { rooms as legacyRooms } from '../legacy/data/rooms'
+import { rooms as legacyRooms, type RoomListing } from '../legacy/data/rooms'
 import type { Booking, BookingStatus, StoredBooking } from '../types/booking'
 
 type RoomStatus = 'available' | 'occupied' | 'dirty' | 'maintenance' | 'reserved'
 
-type ApiRoom = {
+export type ApiRoom = {
   id: string
   name: string
   description: string
@@ -11,6 +11,22 @@ type ApiRoom = {
   priceFrom: string
   basePriceVnd: number
   status: RoomStatus
+  /** Admin / form */
+  type?: string
+  capacity?: number
+  price?: number
+}
+
+function formatPriceFromVnd(vnd: number): string {
+  return `Từ ${new Intl.NumberFormat('vi-VN').format(vnd)} ₫ / đêm`
+}
+
+function normalizeRoomStatus(value: unknown): RoomStatus {
+  const s = typeof value === 'string' ? value : ''
+  if (s === 'available' || s === 'occupied' || s === 'dirty' || s === 'maintenance' || s === 'reserved') {
+    return s
+  }
+  return 'available'
 }
 
 type UserRecord = {
@@ -20,24 +36,36 @@ type UserRecord = {
   role: 'admin' | 'user'
 }
 
-const roomCatalog: ApiRoom[] = legacyRooms.map((room) => {
-  const pricingById: Record<string, number> = {
-    'ocean-suite': 4_800_000,
-    'garden-villa': 8_200_000,
-    'sky-penthouse': 12_500_000,
-    'garden-deluxe': 3_200_000,
-    harbour: 2_900_000,
-    studio: 2_400_000,
-  }
+const pricingById: Record<string, number> = {
+  'ocean-suite': 4_800_000,
+  'garden-villa': 8_200_000,
+  'sky-penthouse': 12_500_000,
+  'garden-deluxe': 3_200_000,
+  harbour: 2_900_000,
+  studio: 2_400_000,
+}
 
-  const statusById: Record<string, RoomStatus> = {
-    'ocean-suite': 'occupied',
-    'garden-villa': 'occupied',
-    'sky-penthouse': 'reserved',
-    'garden-deluxe': 'available',
-    harbour: 'maintenance',
-    studio: 'available',
+const statusById: Record<string, RoomStatus> = {
+  'ocean-suite': 'occupied',
+  'garden-villa': 'occupied',
+  'sky-penthouse': 'reserved',
+  'garden-deluxe': 'available',
+  harbour: 'maintenance',
+  studio: 'available',
+}
+
+function guestsToCapacity(guests: RoomListing['guests']): number {
+  if (typeof guests === 'number' && Number.isFinite(guests)) return Math.max(1, guests)
+  if (typeof guests === 'string') {
+    const n = Number.parseInt(guests, 10)
+    if (Number.isFinite(n)) return Math.max(1, n)
   }
+  return 2
+}
+
+/** Mutable copy — CRUD qua API Next.js (không phụ thuộc json-server POST). */
+const roomsMutable: ApiRoom[] = legacyRooms.map((room) => {
+  const basePriceVnd = pricingById[room.id] ?? 3_500_000
 
   return {
     id: room.id,
@@ -45,8 +73,11 @@ const roomCatalog: ApiRoom[] = legacyRooms.map((room) => {
     description: room.description,
     image: room.image,
     priceFrom: room.priceFrom,
-    basePriceVnd: pricingById[room.id] ?? 3_500_000,
+    basePriceVnd,
     status: statusById[room.id] ?? 'available',
+    type: 'Deluxe',
+    capacity: guestsToCapacity(room.guests),
+    price: basePriceVnd,
   }
 })
 
@@ -152,11 +183,114 @@ export function sleep(milliseconds: number) {
 }
 
 export function listRooms() {
-  return roomCatalog.map((room) => ({ ...room }))
+  return roomsMutable.map((room) => ({ ...room }))
 }
 
 export function findRoom(id: string) {
-  return roomCatalog.find((room) => room.id === id) ?? null
+  return roomsMutable.find((room) => room.id === id) ?? null
+}
+
+export function createRoom(input: Record<string, unknown>): ApiRoom | { error: string } {
+  const name = typeof input.name === 'string' ? input.name.trim() : ''
+  if (!name) {
+    return { error: 'Thiếu tên phòng.' }
+  }
+
+  const type = typeof input.type === 'string' ? input.type.trim() || 'Deluxe' : 'Deluxe'
+  const description = typeof input.description === 'string' ? input.description.trim() : ''
+  const image = typeof input.image === 'string' ? input.image.trim() : ''
+
+  const basePriceVnd =
+    typeof input.basePriceVnd === 'number' && Number.isFinite(input.basePriceVnd)
+      ? Math.max(0, input.basePriceVnd)
+      : typeof input.price === 'number' && Number.isFinite(input.price)
+        ? Math.max(0, input.price)
+        : 0
+
+  const capacityRaw = input.capacity
+  const capacity =
+    typeof capacityRaw === 'number' && Number.isFinite(capacityRaw)
+      ? Math.max(1, Math.floor(capacityRaw))
+      : typeof capacityRaw === 'string'
+        ? Math.max(1, Math.floor(Number.parseInt(capacityRaw, 10)) || 1)
+        : 2
+
+  const status = normalizeRoomStatus(input.status)
+
+  const id = `vio-room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+  const room: ApiRoom = {
+    id,
+    name,
+    description,
+    image,
+    priceFrom: formatPriceFromVnd(basePriceVnd),
+    basePriceVnd,
+    status,
+    type,
+    capacity,
+    price: basePriceVnd,
+  }
+
+  roomsMutable.unshift(room)
+  return room
+}
+
+export function updateRoom(id: string, input: Record<string, unknown>): ApiRoom | null | { error: string } {
+  const index = roomsMutable.findIndex((room) => room.id === id)
+  if (index === -1) return null
+
+  const current = roomsMutable[index]
+
+  const name = typeof input.name === 'string' ? input.name.trim() : current.name
+  if (!name) {
+    return { error: 'Tên phòng không hợp lệ.' }
+  }
+
+  const type = typeof input.type === 'string' ? input.type.trim() || current.type || 'Deluxe' : current.type || 'Deluxe'
+  const description = typeof input.description === 'string' ? input.description.trim() : current.description
+  const image = typeof input.image === 'string' ? input.image.trim() : current.image
+
+  let basePriceVnd = current.basePriceVnd
+  if (typeof input.basePriceVnd === 'number' && Number.isFinite(input.basePriceVnd)) {
+    basePriceVnd = Math.max(0, input.basePriceVnd)
+  } else if (typeof input.price === 'number' && Number.isFinite(input.price)) {
+    basePriceVnd = Math.max(0, input.price)
+  }
+
+  const capacityRaw = input.capacity
+  let capacity = current.capacity ?? 2
+  if (typeof capacityRaw === 'number' && Number.isFinite(capacityRaw)) {
+    capacity = Math.max(1, Math.floor(capacityRaw))
+  } else if (typeof capacityRaw === 'string') {
+    capacity = Math.max(1, Math.floor(Number.parseInt(capacityRaw, 10)) || 1)
+  }
+
+  const status = input.status !== undefined ? normalizeRoomStatus(input.status) : current.status
+
+  const next: ApiRoom = {
+    ...current,
+    id: current.id,
+    name,
+    type,
+    description,
+    image,
+    basePriceVnd,
+    priceFrom: formatPriceFromVnd(basePriceVnd),
+    price: basePriceVnd,
+    capacity,
+    status,
+  }
+
+  roomsMutable[index] = next
+  return next
+}
+
+export function deleteRoom(id: string): boolean {
+  const index = roomsMutable.findIndex((room) => room.id === id)
+  if (index === -1) return false
+  roomsMutable.splice(index, 1)
+  return true
 }
 
 export function listBookings() {

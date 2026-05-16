@@ -1,77 +1,55 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../../hooks/useAuth'
 import { cn } from '../../lib/cn'
 
-const LOGIN_REDIRECT_STORAGE_KEY = 'vio_login_redirect_path'
-
-function getSafeAdminRedirect(value: string | null) {
+function getSafeRedirect(value: string | null) {
   const redirect = (value || '').trim()
   if (!redirect.startsWith('/')) return null
-  if (!redirect.startsWith('/admin')) return null
   if (redirect.startsWith('//')) return null
+  if (redirect.startsWith('/admin')) return null
   return redirect
 }
 
 type FieldErrors = {
+  name?: string
   email?: string
   password?: string
+  confirmPassword?: string
 }
 
 export function LoginForm() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, loading, error, clearError } = useAuth()
+  const { login, register, loading, error, clearError } = useAuth()
 
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-
-  const hasFieldErrors = useMemo(
-    () => Boolean(fieldErrors.email || fieldErrors.password),
-    [fieldErrors],
-  )
 
   const isGuardRedirect = useMemo(() => {
     const params = new URLSearchParams(location.search)
     return params.get('reason') === 'auth'
   }, [location.search])
 
-  const redirectAfterLogin = useMemo(() => {
+  const redirectTarget = useMemo(() => {
     const params = new URLSearchParams(location.search)
-    const redirectFromQuery = getSafeAdminRedirect(params.get('redirect'))
-    if (redirectFromQuery) return redirectFromQuery
-
-    if (typeof window !== 'undefined') {
-      const redirectFromStorage = getSafeAdminRedirect(
-        sessionStorage.getItem(LOGIN_REDIRECT_STORAGE_KEY),
-      )
-      if (redirectFromStorage) return redirectFromStorage
-    }
-
-    return '/admin'
+    return getSafeRedirect(params.get('redirect') || params.get('from'))
   }, [location.search])
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const params = new URLSearchParams(location.search)
-    const redirectFromQuery = getSafeAdminRedirect(params.get('redirect'))
-
-    if (redirectFromQuery) {
-      sessionStorage.setItem(LOGIN_REDIRECT_STORAGE_KEY, redirectFromQuery)
-      return
-    }
-
-    if (params.get('reason') !== 'auth') {
-      sessionStorage.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
-    }
-  }, [location.search])
+  const isRegisterMode = mode === 'register'
 
   const validate = () => {
     const nextErrors: FieldErrors = {}
+
+    if (isRegisterMode && !name.trim()) {
+      nextErrors.name = 'Name is required.'
+    }
 
     if (!email.trim()) {
       nextErrors.email = 'Email is required.'
@@ -85,6 +63,10 @@ export function LoginForm() {
       nextErrors.password = 'Password must be at least 6 characters.'
     }
 
+    if (isRegisterMode && confirmPassword !== password) {
+      nextErrors.confirmPassword = 'Passwords do not match.'
+    }
+
     setFieldErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
@@ -95,18 +77,12 @@ export function LoginForm() {
     if (!validate()) return
 
     try {
-      const result = await login({ email, password })
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(LOGIN_REDIRECT_STORAGE_KEY)
-      }
-      const nextPath =
-        redirectAfterLogin !== '/admin'
-          ? redirectAfterLogin
-          : result.user.role === 'admin'
-            ? '/admin'
-            : '/'
-
-      navigate(nextPath, { replace: true })
+      const result = isRegisterMode
+        ? await register({ name, email, password })
+        : await login({ email, password })
+      navigate(result.role === 'admin' ? '/admin/dashboard' : redirectTarget || '/', {
+        replace: true,
+      })
     } catch {
       // Error state is handled by useAuth and rendered in the form.
     }
@@ -120,10 +96,29 @@ export function LoginForm() {
     if (error) clearError()
   }
 
+  const onNameChange = (value: string) => {
+    setName(value)
+    if (fieldErrors.name) {
+      setFieldErrors((current) => ({ ...current, name: undefined }))
+    }
+    if (error) clearError()
+  }
+
   const onPasswordChange = (value: string) => {
     setPassword(value)
     if (fieldErrors.password) {
       setFieldErrors((current) => ({ ...current, password: undefined }))
+    }
+    if (fieldErrors.confirmPassword) {
+      setFieldErrors((current) => ({ ...current, confirmPassword: undefined }))
+    }
+    if (error) clearError()
+  }
+
+  const onConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value)
+    if (fieldErrors.confirmPassword) {
+      setFieldErrors((current) => ({ ...current, confirmPassword: undefined }))
     }
     if (error) clearError()
   }
@@ -135,15 +130,31 @@ export function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <p className="text-xs uppercase tracking-widest text-gray-400">
-          Welcome Back
-        </p>
-        <h1 className="mt-4 font-light text-4xl tracking-tight text-black md:text-5xl">
-          Sign in
-        </h1>
-        <p className="mt-3 text-gray-500">
-          Access your account and manage your reservations.
-        </p>
+        <p className="text-xs uppercase tracking-widest text-gray-400">Welcome Back</p>
+        <div className="mt-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-light text-4xl tracking-tight text-black md:text-5xl">
+              {isRegisterMode ? 'Create account' : 'Sign in'}
+            </h1>
+            <p className="mt-3 text-gray-500">
+              {isRegisterMode
+                ? 'Create your guest account to book and track stays.'
+                : 'Access your account and manage your reservations.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode((current) => (current === 'login' ? 'register' : 'login'))
+              setFieldErrors({})
+              clearError()
+            }}
+            className="shrink-0 rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-black hover:text-black"
+          >
+            {isRegisterMode ? 'Have account?' : 'Register'}
+          </button>
+        </div>
       </motion.div>
 
       {isGuardRedirect ? (
@@ -188,6 +199,42 @@ export function LoginForm() {
             show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
           }}
         >
+          {isRegisterMode ? (
+            <>
+              <label htmlFor="login-name" className="mb-3 block text-xs uppercase tracking-widest text-gray-400">
+                Full name
+              </label>
+              <motion.input
+                id="login-name"
+                type="text"
+                autoComplete="name"
+                placeholder="Your name"
+                value={name}
+                onChange={(event) => onNameChange(event.target.value)}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? 'login-name-error' : undefined}
+                className={cn(
+                  'w-full border bg-white px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-400',
+                  fieldErrors.name
+                    ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-200'
+                    : 'border-gray-300 focus:border-black focus:ring-0',
+                )}
+                whileFocus={{ scale: 1.01 }}
+              />
+              {fieldErrors.name ? (
+                <motion.p
+                  id="login-name-error"
+                  className="mt-2 text-xs text-red-600"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {fieldErrors.name}
+                </motion.p>
+              ) : null}
+            </>
+          ) : null}
+
           <label htmlFor="login-email" className="mb-3 block text-xs uppercase tracking-widest text-gray-400">
             Email
           </label>
@@ -268,6 +315,42 @@ export function LoginForm() {
               {fieldErrors.password}
             </motion.p>
           ) : null}
+
+          {isRegisterMode ? (
+            <>
+              <label htmlFor="login-confirm-password" className="mb-3 mt-5 block text-xs uppercase tracking-widest text-gray-400">
+                Confirm password
+              </label>
+              <motion.input
+                id="login-confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => onConfirmPasswordChange(event.target.value)}
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                aria-describedby={fieldErrors.confirmPassword ? 'login-confirm-password-error' : undefined}
+                className={cn(
+                  'w-full border bg-white px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-400',
+                  fieldErrors.confirmPassword
+                    ? 'border-red-300 focus:border-red-400 focus:ring-1 focus:ring-red-200'
+                    : 'border-gray-300 focus:border-black focus:ring-0',
+                )}
+                whileFocus={{ scale: 1.01 }}
+              />
+              {fieldErrors.confirmPassword ? (
+                <motion.p
+                  id="login-confirm-password-error"
+                  className="mt-2 text-xs text-red-600"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {fieldErrors.confirmPassword}
+                </motion.p>
+              ) : null}
+            </>
+          ) : null}
+
           <div className="mt-3 text-right">
             <Link
               to="/"
@@ -287,7 +370,7 @@ export function LoginForm() {
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
-        {loading ? 'Signing in...' : 'Sign In'}
+        {loading ? (isRegisterMode ? 'Creating account...' : 'Signing in...') : isRegisterMode ? 'Create account' : 'Sign In'}
       </motion.button>
 
       <motion.p
@@ -296,7 +379,9 @@ export function LoginForm() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        Demo quản trị: admin@viohotel.com / vio123456
+        {isRegisterMode
+          ? 'Tài khoản mới sẽ được tạo với role user.'
+          : 'Demo quản trị: admin@viohotel.com / vio123456'}
       </motion.p>
     </form>
   )

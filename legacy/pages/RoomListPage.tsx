@@ -1,46 +1,93 @@
 import { motion } from 'framer-motion'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
-import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
+import { Card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { Skeleton } from '../components/ui/Skeleton'
-import { getRoomDetail } from '../data/roomDetails'
-import { useFakeApiData } from '../lib/useFakeApiData'
-import { RoomCard } from '../components/guest/RoomCard'
-import { useAppData } from '../state/AppDataContext'
+import { formatVnd } from '../data/roomDetails'
+import { roomApi, API_BASE_URL } from '../../lib/api'
+import { getStoredUser } from '../../hooks/useAuth'
+
+type ApiRoom = {
+  id: string
+  name: string
+  type?: string
+  price?: number
+  basePriceVnd?: number
+  priceFrom?: string
+  status?: string
+  image?: string
+  description?: string
+  capacity?: number
+  guests?: number
+}
 
 export function RoomListPage() {
   const navigate = useNavigate()
-  const { rooms, searchFilters, setBookingDraft, getUnavailableRoomIds } = useAppData()
+  const [rooms, setRooms] = useState<ApiRoom[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [sort, setSort] = useState<'low' | 'high' | 'popular'>('popular')
-  const [filterOpen, setFilterOpen] = useState(false)
 
-  const guestCount = Math.max(1, parseInt(searchFilters.guests, 10) || 2)
-  const visibleRooms = useMemo(
-    () =>
-      rooms.filter((room) => {
-        const detail = getRoomDetail(room.id)
-        return detail ? detail.keyFacts.maxGuests >= guestCount : true
-      }),
-    [rooms, guestCount],
-  )
+  useEffect(() => {
+    let active = true
 
-  const unavailableRoomIds = useMemo(
-    () => getUnavailableRoomIds(searchFilters.checkIn, searchFilters.checkOut),
-    [getUnavailableRoomIds, searchFilters.checkIn, searchFilters.checkOut],
-  )
+    async function loadRooms() {
+      setLoading(true)
+      setError(null)
+      setDebugInfo(null)
 
-  const { loading, data: displayedRooms } = useFakeApiData(visibleRooms, 850)
+      try {
+        const data = await roomApi.getAll()
+        if (!active) return
+        setRooms(Array.isArray(data) ? (data as ApiRoom[]) : [])
+        // expose debug info on success
+        setDebugInfo({ apiBase: API_BASE_URL })
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Không thể tải danh sách phòng.')
+        setDebugInfo({ apiBase: API_BASE_URL, fetchError: err instanceof Error ? err.message : String(err) })
+        setRooms([])
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadRooms()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const [debugInfo, setDebugInfo] = useState<{ apiBase?: string; fetchError?: string } | null>(null)
 
   const sortedRooms = useMemo(() => {
-    if (!displayedRooms) return []
-    const copy = [...displayedRooms]
-    if (sort === 'low') return copy.sort((a, b) => (a.priceFromRaw || 0) - (b.priceFromRaw || 0))
-    if (sort === 'high') return copy.sort((a, b) => (b.priceFromRaw || 0) - (a.priceFromRaw || 0))
+    const copy = [...rooms]
+    if (sort === 'low') {
+      return copy.sort((a, b) => (a.basePriceVnd || a.price || 0) - (b.basePriceVnd || b.price || 0))
+    }
+    if (sort === 'high') {
+      return copy.sort((a, b) => (b.basePriceVnd || b.price || 0) - (a.basePriceVnd || a.price || 0))
+    }
     return copy
-  }, [displayedRooms, sort])
+  }, [rooms, sort])
+
+  const heroRoom = sortedRooms[0]
+
+  const handleBook = (roomId: string) => {
+    const user = getStoredUser()
+    const bookingPath = `/booking/${roomId}`
+
+    if (!user) {
+      navigate(`/login?reason=auth&redirect=${encodeURIComponent(bookingPath)}&from=${encodeURIComponent(bookingPath)}`)
+      return
+    }
+
+    navigate(bookingPath)
+  }
 
   return (
     <div className="vio-container vio-section">
@@ -53,7 +100,7 @@ export function RoomListPage() {
         <div
           className="relative min-h-[420px] w-full overflow-hidden rounded-[2rem] bg-cover bg-center shadow-soft"
           style={{
-            backgroundImage: `linear-gradient(to bottom, rgba(6,8,15,0.25), rgba(6,8,15,0.35)), url(${(rooms[0] && rooms[0].image) || ''})`,
+            backgroundImage: `linear-gradient(to bottom, rgba(6,8,15,0.25), rgba(6,8,15,0.35)), url(${heroRoom?.image || ''})`,
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
@@ -61,36 +108,29 @@ export function RoomListPage() {
             <p className="text-sm font-medium uppercase tracking-[0.32em] text-white/75">Tất cả phòng</p>
             <h1 className="max-w-3xl font-heading text-4xl font-semibold leading-[1.02] md:text-6xl">Không gian dành cho bạn</h1>
             <p className="max-w-2xl text-sm leading-7 text-white/80 md:text-base">Hình ảnh thật, giá công khai — chọn phòng rồi tiếp tục đặt chỗ trong vài bước.</p>
-
-            <div className="mt-3 flex w-full max-w-4xl flex-col gap-3 rounded-[1.25rem] border border-white/10 bg-white/12 p-4 backdrop-blur-xl md:flex-row md:items-center">
-              <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <input aria-label="checkin" type="date" className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-white/35" />
-                <input aria-label="checkout" type="date" className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-white/35" />
-                <select aria-label="guests" className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-white/35">
-                  <option>1 khách</option>
-                  <option>2 khách</option>
-                  <option>3 khách</option>
-                </select>
-              </div>
-              <Button type="button" className="w-full shrink-0 md:w-auto md:px-8">
-                Tìm kiếm
-              </Button>
-            </div>
           </div>
         </div>
       </motion.section>
 
-      <Card className="mt-24 border-none bg-vio-white/70 p-0 md:hidden">
-        <CardHeader className="p-8">
-          <CardTitle className="text-xl">Sẵn sàng đặt?</CardTitle>
-          <CardDescription>Mở form tìm kiếm để chọn ngày và số khách.</CardDescription>
-        </CardHeader>
-        <div className="border-t border-vio-navy/[0.06] px-8 pb-8">
-          <Button type="button" className="w-full" onClick={() => navigate('/search')}>
-            Đặt phòng ngay
-          </Button>
+      <div className="mt-24 flex flex-col gap-4 rounded-[1.5rem] border border-vio-navy/10 bg-white/80 p-4 shadow-soft backdrop-blur md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-vio-navy/40">Danh sách phòng</p>
+          <h2 className="mt-2 font-heading text-3xl font-medium text-vio-navy md:text-4xl">Chọn phòng phù hợp với kỳ nghỉ của bạn</h2>
         </div>
-      </Card>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-vio-navy/70">Sắp xếp:</label>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as 'low' | 'high' | 'popular')}
+            className="rounded-xl border border-vio-navy/10 bg-white px-4 py-2.5 text-sm text-vio-navy shadow-sm outline-none focus:border-vio-navy/30"
+          >
+            <option value="popular">Phổ biến</option>
+            <option value="low">Giá thấp → cao</option>
+            <option value="high">Giá cao → thấp</option>
+          </select>
+        </div>
+      </div>
 
       <motion.div
         className="mt-10 flex items-center justify-center"
@@ -102,6 +142,44 @@ export function RoomListPage() {
         {loading ? <LoadingSpinner label="Đang tải danh sách phòng..." /> : null}
       </motion.div>
 
+      {error ? (
+        <EmptyState
+          className="mt-8 p-8 text-center"
+          title="Không tải được danh sách phòng"
+          description={error}
+        />
+      ) : null}
+
+      {debugInfo ? (
+        <div className="mt-6 text-sm text-vio-navy/60">
+          <p>API Base: <strong>{debugInfo.apiBase || '(empty)'}</strong></p>
+          {debugInfo.fetchError ? <p>Error: {debugInfo.fetchError}</p> : null}
+          <div className="mt-3">
+            <button
+              className="rounded-xl border px-3 py-2 text-sm"
+              onClick={() => {
+                setLoading(true)
+                setError(null)
+                setRooms([])
+                // re-run the effect's loader
+                ;(async () => {
+                  try {
+                    const data = await roomApi.getAll()
+                    setRooms(Array.isArray(data) ? (data as ApiRoom[]) : [])
+                    setDebugInfo({ apiBase: API_BASE_URL })
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : String(e))
+                    setDebugInfo({ apiBase: API_BASE_URL, fetchError: e instanceof Error ? e.message : String(e) })
+                  } finally {
+                    setLoading(false)
+                  }
+                })()
+              }}
+            >Retry</button>
+          </div>
+        </div>
+      ) : null}
+
       <motion.div
         className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:px-8"
         initial={{ opacity: 0, y: 40 }}
@@ -109,55 +187,6 @@ export function RoomListPage() {
         viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
-        <motion.div
-          className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-vio-navy/10 bg-white/80 p-4 shadow-soft backdrop-blur md:flex-row md:items-center md:justify-between"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: '-50px' }}
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
-        >
-          <motion.div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-vio-navy/70">Sắp xếp:</label>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as any)}
-                className="rounded-xl border border-vio-navy/10 bg-white px-4 py-2.5 text-sm text-vio-navy shadow-sm outline-none focus:border-vio-navy/30"
-              >
-                <option value="low">Giá thấp → cao</option>
-                <option value="high">Giá cao → thấp</option>
-                <option value="popular">Phổ biến</option>
-              </select>
-            </div>
-
-            <div className="hidden items-center gap-2 lg:flex">
-              <button
-                onClick={() => setFilterOpen(!filterOpen)}
-                className="rounded-xl border border-vio-navy/10 bg-white px-4 py-2.5 text-sm text-vio-navy shadow-sm transition-colors hover:bg-vio-sand/40"
-              >
-                Bộ lọc
-              </button>
-              <div className={`overflow-hidden transition-all ${filterOpen ? 'max-h-40' : 'max-h-0'}`}>
-                <div className="flex gap-2 p-2">
-                  <select className="rounded-xl border border-vio-navy/10 px-3 py-2 text-sm">
-                    <option>Loại phòng</option>
-                  </select>
-                  <select className="rounded-xl border border-vio-navy/10 px-3 py-2 text-sm">
-                    <option>Giá</option>
-                  </select>
-                  <select className="rounded-xl border border-vio-navy/10 px-3 py-2 text-sm">
-                    <option>Số người</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <div className="md:ml-auto">
-            <p className="text-sm font-medium text-vio-navy/75">⭐ 4.8/5 từ 120+ khách</p>
-          </div>
-        </motion.div>
-
         <motion.div
           className="transition-opacity duration-300"
           style={{ opacity: loading ? 0.9 : 1 }}
@@ -184,22 +213,11 @@ export function RoomListPage() {
               ))}
             </div>
           ) : sortedRooms.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-            >
-              <EmptyState
-                className="mt-10 p-10 text-center"
-                title="Không có phòng phù hợp"
-                description="Hãy thử giảm số khách hoặc đổi ngày để xem thêm lựa chọn."
-                action={
-                  <Button type="button" onClick={() => navigate('/search')}>
-                    Điều chỉnh tìm kiếm
-                  </Button>
-                }
-              />
-            </motion.div>
+            <EmptyState
+              className="mt-10 p-10 text-center"
+              title="Không có phòng phù hợp"
+              description="Hiện chưa có phòng nào để hiển thị."
+            />
           ) : (
             <motion.div
               className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
@@ -209,9 +227,11 @@ export function RoomListPage() {
               variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
             >
               {sortedRooms.map((room) => {
-                const unavailable = unavailableRoomIds.has(room.id)
+                const price = room.basePriceVnd || room.price || 0
+                const capacity = room.capacity || room.guests || 2
+
                 return (
-                  <motion.div
+                  <motion.article
                     key={room.id}
                     variants={{
                       hidden: { opacity: 0, y: 30 },
@@ -219,29 +239,53 @@ export function RoomListPage() {
                     }}
                     className="h-full"
                   >
-                    <RoomCard
-                      room={room}
-                      unavailable={unavailable}
-                      featured={room.featured}
-                      onDetail={() => {
-                        if (unavailable) return
-                        const query = new URLSearchParams()
-                        if (searchFilters.checkIn) query.set('checkIn', searchFilters.checkIn)
-                        if (searchFilters.checkOut) query.set('checkOut', searchFilters.checkOut)
-                        query.set('guests', searchFilters.guests)
-                        setBookingDraft({
-                          roomId: room.id,
-                          checkIn: searchFilters.checkIn,
-                          checkOut: searchFilters.checkOut,
-                          guests: searchFilters.guests,
-                          adults: searchFilters.guests,
-                          children: '0',
-                        })
-                        navigate(`/rooms/${room.id}${query.toString() ? `?${query.toString()}` : ''}`)
-                      }}
-                      className="h-full"
-                    />
-                  </motion.div>
+                    <Card className="group flex h-full flex-col overflow-hidden border-vio-navy/10 p-0 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-2xl">
+                      <div className="relative aspect-[4/3] overflow-hidden bg-vio-sand/40">
+                        {room.image ? (
+                          <img
+                            src={room.image}
+                            alt={room.name}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                            loading="lazy"
+                          />
+                        ) : null}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+                        <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-vio-navy shadow-soft-sm">
+                          {room.type || 'Room'}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-1 flex-col p-6 md:p-7">
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="font-heading text-2xl font-medium text-vio-navy">{room.name}</h3>
+                              <p className="mt-1 text-sm uppercase tracking-[0.2em] text-vio-navy/40">{room.type || 'Phòng'}</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-xs uppercase tracking-[0.2em] text-vio-navy/35">Từ</p>
+                              <p className="mt-1 font-heading text-xl text-vio-navy">{formatVnd(price)}</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex items-center gap-2 text-sm text-vio-navy/55">
+                            <span className="rounded-full bg-vio-gold/15 px-3 py-1 font-medium text-vio-navy">{capacity} khách</span>
+                            {room.status ? <span className="rounded-full bg-vio-navy/5 px-3 py-1">{room.status}</span> : null}
+                          </div>
+
+                          <p className="mt-4 text-sm leading-7 text-vio-navy/65">
+                            {room.description || 'Mô tả phòng chưa được cập nhật.'}
+                          </p>
+                        </div>
+
+                        <div className="mt-6">
+                          <Button type="button" className="w-full" onClick={() => handleBook(room.id)}>
+                            Đặt phòng
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.article>
                 )
               })}
             </motion.div>

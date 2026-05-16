@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AdminSidebar } from './AdminSidebar'
-import { AUTH_USER_KEY } from '../../hooks/useAuth'
+import { useAuth } from '../../../hooks/useAuth'
 
 const pathMeta: Record<string, { title: string; kicker?: string }> = {
   '/admin': { title: 'Tổng quan vận hành', kicker: 'Dashboard' },
+  '/admin/dashboard': { title: 'Tổng quan vận hành', kicker: 'Dashboard' },
   '/admin/matrix': { title: 'Sơ đồ phòng', kicker: 'Buồng phòng' },
   '/admin/calendar': { title: 'Lịch đặt phòng', kicker: 'Đặt phòng' },
   '/admin/rooms': { title: 'Quản lý phòng', kicker: 'Inventory' },
+  '/admin/bookings': { title: 'Tất cả đặt phòng', kicker: 'Admin' },
   '/admin/pricing': { title: 'Giá & ưu đãi', kicker: 'Revenue' },
   '/admin/customers': { title: 'Khách hàng', kicker: 'CRM' },
   '/admin/staff': { title: 'Nhân sự & phân quyền', kicker: 'Bảo mật' },
@@ -15,18 +17,7 @@ const pathMeta: Record<string, { title: string; kicker?: string }> = {
 
 export function AdminLayout() {
   const { pathname } = useLocation()
-  const [userName, setUserName] = useState<string | null>(null)
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(AUTH_USER_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as { name?: string }
-      setUserName(typeof parsed.name === 'string' ? parsed.name : null)
-    } catch {
-      setUserName(null)
-    }
-  }, [])
+  const { user } = useAuth()
 
   const meta = useMemo(() => pathMeta[pathname] ?? pathMeta['/admin']!, [pathname])
 
@@ -46,9 +37,9 @@ export function AdminLayout() {
               <h1 className="mt-1 font-heading text-2xl font-normal text-vio-navy md:text-3xl">{meta.title}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              {userName ? (
+              {user ? (
                 <span className="rounded-full border border-vio-linen bg-vio-white px-4 py-2 text-vio-text-primary shadow-soft">
-                  Xin chào, <span className="font-medium">{userName}</span>
+                  Xin chào, <span className="font-medium">{user.name}</span>
                 </span>
               ) : null}
               <Link
